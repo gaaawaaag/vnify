@@ -1,0 +1,36 @@
+@vn 0.10
+@book grouped_cast title="旧站来信"
+@character lin label="林舟" color="#79b9ae"
+@character lan label="核验员" color="#b394cb"
+@character visitor label="来客" color="#c6a56e"
+@chapter one title="旧站来信"
+@scene station
+@source p000001
+{{lin|林舟}}在旧站值班，负责保管信号记录。
+大家都叫他老林。
+@source p000002
+一位{{visitor|来客}}走进了候车室。
+@scene arrival
+@source p000003
+{{lan|核验员}}从总站赶来。
+她是林舟的妹妹。
+@source p000004
+@reveal lan label="林岚"
+[lin] 林岚，信件已经准备好了。
+@scene departure
+@source p000005
+林岚带着信件离开，来客仍在等车。
+
+// @vn-dossiers-begin
+// @dossier 2
+// @intro lin summary="旧站值班员。"
+// @intro visitor summary="走进旧站候车室的来客。"
+// @intro lan summary="来自总站的核验员。"
+// @after station
+// @person lin group="旧站"
+// @entry lin alias category=alias text="老林。" importance=support reason="常用称呼"
+// @entry lin duty category=background text="负责保管旧站的信号记录。" importance=core reason="持续职责"
+// @after arrival
+// @person lan group="总站"
+// @entry lin sibling category=relation target=lan text="妹妹，总站核验员。" importance=core reason="明确亲属关系"
+// @vn-dossiers-end

@@ -1,0 +1,15 @@
+@vn 0.10
+@book cg-demo title="灯塔重明"
+@character keeper label="守塔人"
+@location tower label="灯塔"
+@chapter ch1 title="归航"
+@scene s1 loc=tower
+@source p000001
+[keeper] 风终于停了。
+@source p000002
+[keeper] 看，灯亮了！
+@source p000003
+暖光越过海面，照见了归来的船。
+@source p000004
+[keeper] 我们下楼吧。
+// @vn-director {"version":13,"chapterId":"ch1","backgrounds":[{"locations":["tower"],"blocks":["s1"],"prompt":"Soft watercolor illustration of a lighthouse interior at dusk, no people."}],"omittedBlocks":[],"cgs":[{"id":"ch1.cg01","from":"s1:2","to":"s1:3","reason":"灯塔重新点亮的关键时刻。","prompt":"Soft watercolor illustration, a lighthouse keeper with short gray hair and a navy wool coat switches on a brilliant amber beacon at dusk, lantern room overlooking a calm sea, wide composition with clear lower area for dialogue, no text."}],"generation":{"backgrounds":true,"locationBackgrounds":true,"cgs":true,"cutIns":false,"characterVariants":false,"locationVariants":false,"standing":false,"ambients":true},"artStyles":{"background":"Soft watercolor illustration.","character":"Soft watercolor illustration."},"cutIns":[],"cutInUses":[],"characters":[],"variants":[],"states":[],"ambients":[{"id":"ch1.ambient","name":"归航","prompt":"Soft watercolor illustration of a quiet sea at dusk, no people."}],"ambient":"ch1.ambient","ambientBlocks":[]}

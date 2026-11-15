@@ -1,0 +1,29 @@
+# Cloud bookshelf: copy .env.example to .env, fill it in, then `docker compose up -d`. See the README.
+services:
+  vnify:
+    build: .
+    restart: unless-stopped
+    environment:
+      VN_CLOUD_ORIGIN: https://${VN_DOMAIN:?在 .env 填写 VN_DOMAIN}
+      VN_ACCESS_TOKEN: ${VN_ACCESS_TOKEN:?在 .env 填写 VN_ACCESS_TOKEN}
+    # Only this server can reach it; a panel's reverse proxy (1Panel, BT) forwards the domain here.
+    ports:
+      - "127.0.0.1:${VN_PORT:-4173}:4173"
+    volumes:
+      - vnify-data:/data
+  # Started only with COMPOSE_PROFILES=caddy (no other web server on 80/443): obtains the HTTPS certificate itself.
+  caddy:
+    image: caddy:2
+    profiles: ["caddy"]
+    restart: unless-stopped
+    command: caddy reverse-proxy --from ${VN_DOMAIN} --to vnify:4173
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+volumes:
+  vnify-data:
+  caddy-data:
+  caddy-config:

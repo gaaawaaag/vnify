@@ -1,0 +1,20 @@
+{
+  // Type checking only: the browser and Node run the .js files as they are, with no build step.
+  // A source file is checked once it starts with `// @ts-check`; shared data shapes live in src/types.
+  // Validators read untrusted JSON as `any`, so implicit any stays allowed; exported functions carry JSDoc types instead.
+  "compilerOptions": {
+    "target": "es2023",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "types": ["node"],
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "strict": true,
+    "noImplicitAny": false,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.js", "src/**/*.mjs", "src/types/**/*.d.ts", "scripts/**/*.mjs"],
+  "exclude": ["src/prompts/library.generated.js"]
+}

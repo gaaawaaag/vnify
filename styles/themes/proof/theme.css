@@ -1,0 +1,93 @@
+/* Validation theme: exercises every kind of theme capability (palette, fonts, layout parameters,
+   decoration layers, windows, toolbar buttons, continue icon). Not meant to be pretty. */
+
+:root[data-theme="proof"] {
+  --gold: #c9a46a;
+  --accent: #c9a46a;
+  --focus: #e0c08a;
+  --theme-title-font: "KaiTi", "STKaiti", serif;
+  --theme-reading-font: "Songti SC", "SimSun", serif;
+
+  --dialogue-max-width: 980px;
+  --dialogue-padding: 36px 48px 22px;
+  --card-radius: 2px;
+  --dialogue-layer: "";
+  --dialogue-texture: url(grain.png);
+  --dialogue-frame: url(frame.svg) 24 / 24px / 6px round;
+  --dialogue-outset: 6px;
+
+  --dialogue-box-alpha: .35;
+  --dialogue-box-border: 1px solid #c9a46a55;
+  --dialogue-box-shadow: 0 6px 20px #0008;
+  --dialogue-sample-padding: 14px 18px;
+
+  --nameplate-padding: 4px 22px;
+  --nameplate-rotate: -2deg;
+  --nameplate-shift: 0 -6px;
+  --nameplate-layer: "";
+  --nameplate-texture: url(plate.svg) center / 100% 100% no-repeat;
+  --name-rule-width: 7px;
+  --name-mark-height: 7px;
+  --name-mark-inset: 50% auto auto calc(100% + 6px);
+  --name-mark-transform: translateY(-50%) rotate(45deg);
+  --name-mark-radius: 0;
+  --name-mark-opacity: 1;
+
+  --continue-background: url(diamond.svg) center / contain no-repeat;
+  --continue-size: 9px;
+  --continue-rotate: 0deg;
+  --continue-dot: #c9a46a;
+
+  --quick-button-border: 1px solid #c9a46a55;
+  --quick-button-background: #0006;
+  --quick-active-background: #c9a46a33;
+  --menu-button-border: 1px solid #c9a46a55;
+  --menu-mark-radius: 50%;
+  --menu-mark-rest-opacity: .4;
+  --place-padding: 4px 12px;
+  --place-border: 1px solid #c9a46a55;
+  --place-background: #0008;
+  --place-radius: 2px;
+
+
+  --document-layer: "";
+  --document-texture: url(paper.png);
+  --document-radius: 0;
+
+  --toolbar-layer: "";
+  --toolbar-texture: url(grain.png);
+  --toolbar-button-border: 1px solid #c9a46a55;
+  --toolbar-button-radius: 0;
+
+  --window-texture: url(grain.png);
+  --window-frame: url(frame.svg) 24 / 24px round;
+  --radius: 2px;
+
+  --chapter-layer: "";
+  --chapter-texture: url(ornament.svg) no-repeat left clamp(24px, 5vw, 72px) bottom 34% / 240px 24px;
+  --chapter-rule-background: transparent;
+  --scene-layer: "";
+  --scene-texture: url(ornament.svg) no-repeat center 30% / 240px 24px;
+  --scene-mark-color: transparent;
+
+  --portrait-backing: #2a2116;
+  --portrait-layer: "";
+  --portrait-frame: url(frame.svg) 24 / 24px / 4px round;
+  --narrow-portrait-mask: none;
+  --narrow-portrait-backing: #2a2116;
+  --narrow-portrait-radius: 2px;
+  --narrow-portrait-shadow: 0 0 0 1px #c9a46a88;
+
+  --title-layer: "";
+  --title-frame: url(frame.svg) 24 / 24px round;
+  --title-outset: -28px;
+
+  --cut-in-radius: 0;
+}
+
+@media (max-width: 600px) {
+  :root[data-theme="proof"] {
+    --dialogue-padding: 26px 26px 18px;
+    --dialogue-box-inset: 8px;
+  }
+}

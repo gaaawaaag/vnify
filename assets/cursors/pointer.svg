@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <defs><filter id="shadow" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="1"/><feOffset dy="1"/>
+    <feComponentTransfer><feFuncA type="linear" slope=".55"/></feComponentTransfer>
+    <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter></defs>
+  <g filter="url(#shadow)"><rect x="8.5" y="8.5" width="11" height="11" transform="rotate(45 14 14)" fill="#f2f4f7" stroke="#16181c" stroke-width="1.2"/>
+    <circle cx="14" cy="14" r="1.6" fill="#16181c"/></g>
+</svg>

@@ -1,0 +1,28 @@
+@vn 0.10
+@book character_demo title="旅客（原创资料协议样例）"
+@character visitor label="旅客" color="#79b9ae"
+@chapter ch01 title="相遇"
+@narration b0001_s01
+@source p000001
+@reveal visitor
+旅客说自己叫林舟，此行前往北城。
+@reveal visitor label="林舟"
+[visitor] 我得找到她。
+[visitor] 谢谢你愿意同行。
+
+@chapter ch02 title="来意"
+@narration b0002_s01
+@source p000002
+林舟说明，自己在寻找失踪的妹妹。
+
+// 原创样例：首次 reveal 开放一句话简介，其余资料在下一块入口／末块末句完成后更新。
+// @vn-dossiers-begin
+// @dossier 2
+// @intro visitor summary="一位旅客。"
+// @after b0001_s01
+// @person visitor fullName="林舟" summary="准备前往北城的旅客。"
+// @entry visitor destination text="准备前往北城。" importance=support reason="持续的行程目标。"
+// @after b0002_s01
+// @person visitor summary="前往北城寻找失踪妹妹的旅客。"
+// @entry visitor destination text="前往北城寻找失踪的妹妹。" importance=core reason="原有目标主题补充明确动机，不新增重复条目。"
+// @vn-dossiers-end

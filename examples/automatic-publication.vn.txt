@@ -1,0 +1,25 @@
+@vn 0.10
+@book automatic_publication title="门前的访客"
+@character visitor label="访客" color="#79b9ae"
+@character future label="送信人" color="#c49d73"
+@chapter ch01 title="初见"
+@narration b01
+@source p000001
+门外传来脚步声。
+@source p000002
+{{visitor|那位访客}}停在门前。
+[visitor|心声] 应该就是这里。
+@narration b02
+@source p000003
+@reveal visitor label="林舟"
+[visitor] 我叫林舟。
+@chapter ch02 title="再会"
+@narration b03
+@source p000004
+[visitor] 又见面了。
+// @vn-dossiers-begin
+// @dossier 2
+// @intro visitor summary="来到门前的访客。"
+// @after b02
+// @person visitor fullName="林舟"
+// @vn-dossiers-end

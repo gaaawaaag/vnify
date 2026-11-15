@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <!-- Rounder line icons for the soda theme; they follow the button colour. -->
+  <symbol id="i-hide" viewBox="0 0 24 24"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.6"/><path d="M4 20 20 4"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="3"/><path d="M9 9h6M9 13h6M9 17h3"/></symbol>
+  <symbol id="i-auto" viewBox="0 0 24 24"><path d="M9 7.5v9l7.5-4.5z" fill="currentColor"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h9"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M12 4.2l2.3 4.7 5.2.8-3.8 3.7.9 5.1L12 16.1l-4.6 2.4.9-5.1-3.8-3.7 5.2-.8z" fill="currentColor"/></symbol>
+</svg>

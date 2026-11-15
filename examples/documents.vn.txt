@@ -1,0 +1,45 @@
+@vn 0.10
+@book documents_demo title="信与消息"
+@character lin label="林舟" color="#68805c"
+@location study label="书房"
+@chapter ch01 title="正文"
+@scene arrival loc=study
+@source p000001
+{{lin|林舟}}打开桌上的信封。
+@document letter
+@source p000002,p000003
+@text
+林舟：
+
+我已经到了车站。
+请带上旧车票，明早我们在那里见面。
+
+阿宁
+十月一日
+@enddocument
+@scene reaction loc=study
+@source p000004
+他把信放在键盘旁，屏幕上又跳出一封邮件。
+@document email
+@source p000005
+@text
+发件人：station@example.test
+收件人：lin@example.test
+主题：临时开放通知
+
+旧车站将于明日上午八时开放。
+请从南侧入口进入。
+
+站务室
+@enddocument
+@scene ending loc=study
+@source p000006
+[lin] 看来明早要早起了。
+@document coda style=verse
+@source p000007
+@text
+车票还在口袋里，
+    站台已经亮了灯。
+明早的风
+    会从南侧入口吹进来。
+@enddocument

@@ -1,0 +1,357 @@
+/* Default appearance tokens. Every variable here is themeable (see docs/theme-guide.md), except the
+   resolved font chain --ui-font/--title-font/--reading-font: themes set --theme-*-font instead. */
+
+:root {
+  --cut-in-border: #9aa1aa;
+  --cut-in-shadow: 0 8px 30px #0009;
+  --title-screen-text: #eef1f4;
+  --title-screen-hint: #eef1f4c7;
+  --title-screen-scrim: #0000008c;
+  --title-screen-shadow: 0 2px 12px #000000b3;
+  /* A tall cover on a wide screen sits over a blurred, darkened copy of itself. */
+  --title-screen-backdrop-filter: blur(36px) brightness(.45) saturate(1.1);
+  /* Reading pictures shown whole (a tall one on a wide screen, a wide CG on a tall one) sit on the same treatment. */
+  --picture-backdrop-filter: blur(36px) brightness(.45) saturate(1.1);
+  --cursor-default: url("../assets/cursors/cursor.png") 3 3, default;
+  --cursor-pointer: url("../assets/cursors/pointer.png") 14 14, pointer;
+  --cursor-help: url("../assets/cursors/help.png") 3 3, help;
+  /* Fonts: themes set --theme-*-font; a reader's own font (--user-reading-font) wins over both. */
+  --ui-font: var(--theme-ui-font, "Microsoft YaHei", system-ui, sans-serif);
+  --title-font: var(--theme-title-font, "Cheese Foam Oolong Song Lite", Georgia, "SimSun", serif);
+  --reading-font: var(--user-reading-font, var(--theme-reading-font, "VN CJK Punctuation", "Crimson Pro", "Source Han Serif SC", "Noto Serif SC",
+    "Songti SC", "SimSun", serif));
+  --dialogue-alpha: .7;
+  --surface-rgb: 14 15 17;
+  --memory-surface-rgb: 84 54 31;
+  --dream-surface-rgb: 56 44 82;
+  /* The dialogue band: its colour ("R G B"), and the tints and picture filters of memories and dreams. */
+  --scrim-rgb: 0 0 0;
+  --memory-scrim-rgb: 34 22 11;
+  --dream-scrim-rgb: 24 18 42;
+  --memory-image-filter: sepia(.9) saturate(.75) brightness(.7) contrast(.9);
+  --dream-image-filter: grayscale(.5) brightness(.62) contrast(.9);
+  --dialogue-text-shadow: 0 1px 2px rgb(0 0 0 / 60%);
+  --context-text: #eef0f3;
+  --context-muted: #c0c6cd;
+  --context-shadow: 0 1px 3px #000c, 0 0 12px #0008;
+  --quick-text: #c5cad0;
+  --bg: #0a0b0d;
+  --text: #e6e9ed;
+  --muted: #8f96a0;
+  /* The accent: cool off-white on black (the name is historical). */
+  --gold: #e8ecf0;
+  --accent: var(--gold);
+  --line: #ffffff1c;
+  --panel: #131518;
+  --glass: rgb(var(--surface-rgb) / 86%);
+  --chrome: rgb(var(--surface-rgb) / 90%);
+  --field: #0f1012;
+  --hover: #ffffff0f;
+  --soft: #ffffff06;
+  --focus: #d3d9e0;
+  --primary-text: #0b0c0e;
+  --shadow: 0 24px 70px #0006, inset 0 1px 0 #ffffff12;
+  --backdrop: #0008;
+  /* Cast covers the stage: the scene shows through this scrim, blurred. */
+  --cast-scrim: linear-gradient(rgb(var(--shadow-rgb) / 82%), rgb(var(--shadow-rgb) / 66%) 45%, rgb(var(--shadow-rgb) / 86%));
+  --cast-blur: 18px;
+  /* Gallery: pictures not yet reached keep their colours but not their content. */
+  --gallery-fog: blur(12px) saturate(.6) brightness(.9);
+  --gallery-fog-tint: linear-gradient(160deg, #dfe5ec38, #0a0b0d2e);
+  --gallery-viewer-bg: rgb(5 6 7 / 95%);
+  --error: #f2b3a2;
+  --error-bg: #442a25;
+  --memory: #dcc3a0;
+  --dream: #c6b6e3;
+  --radius: 14px;
+  --card-radius: 10px;
+  --blur: 22px;
+  --blur-saturate: 1.3;
+  --name-rule-width: 26px;
+  --card-highlight-rgb: 255 255 255;
+  /* Home page: the photo behind it, the shelf on glass, the book to continue and the book cards. */
+  --home-sans: "Source Han Sans SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  --home-serif: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --home-mono: "Cascadia Mono", "JetBrains Mono", Consolas, "Microsoft YaHei", monospace;
+  --home-photo-bg: #0d1116;
+  --home-photo-scrim: radial-gradient(ellipse 70% 60% at 0% 100%, rgb(6 8 11 / 62%), transparent 70%),
+    linear-gradient(180deg, rgb(8 10 14 / 42%) 0, rgb(8 10 14 / 0%) 16%, rgb(8 10 14 / 0%) 40%, rgb(8 10 14 / 45%) 100%);
+  --home-glass: rgb(11 13 17 / 62%);
+  --home-glass-blur: 28px;
+  --home-rule: #ffffff1a;
+  --home-faint: #6b727b;
+  --home-cell-hover: #ffffff08;
+  --home-icon-line: #ffffff1e;
+  --home-icon-hover-line: #ffffff38;
+  --home-icon-hover: #ffffff14;
+  --home-header-icon: #e6e9edd9;
+  --home-header-icon-hover: #ffffff;
+  --home-icon-shadow: 0 1px 3px rgb(0 0 0 / 55%);
+  --home-primary-hover: #ffffff;
+  --home-tip: #15181cf0;
+  --home-brand-shadow: 0 1px 12px rgb(0 0 0 / 35%);
+  --home-menu: rgb(17 19 23 / 92%);
+  --home-resume-text: #f4f6f8;
+  --home-resume-muted: #d0d6dc;
+  --home-resume-rule: rgb(255 255 255 / 40%);
+  --home-resume-text-shadow: 0 1px 2px rgb(0 0 0 / 35%);
+  --home-resume-button: rgb(12 14 18 / 62%);
+  --home-resume-track: rgb(255 255 255 / 22%);
+  --home-resume-button-shadow: 0 6px 18px rgb(0 0 0 / 40%);
+  --home-resume-edge: rgb(255 255 255 / 14%);
+  --home-resume-sheen: linear-gradient(180deg, rgb(255 255 255 / 9%), transparent 38%);
+  --home-resume-shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 18px -6px rgb(0 0 0 / 45%), 0 26px 48px -18px rgb(0 0 0 / 55%);
+  --shelf-cover-line: #ffffff16;
+  --shelf-cover-hover-line: #ffffff55;
+  --shelf-cover-shadow: 0 12px 28px rgb(0 0 0 / 35%);
+  --shelf-cover-hover-shadow: 0 18px 36px rgb(0 0 0 / 50%);
+  /* Cover harmony: covers lose some colour and lean towards the cool photo; hovering shows the real colours. */
+  --shelf-cover-filter: saturate(.55) brightness(.88) contrast(1.04);
+  --shelf-cover-tint: #5d6f8a;
+  --shelf-cover-tint-opacity: .55;
+  --shelf-spine: linear-gradient(90deg, rgb(0 0 0 / 38%) 0, rgb(255 255 255 / 8%) 3%, transparent 7%), linear-gradient(180deg, transparent 55%, rgb(0 0 0 / 65%) 100%);
+  --shelf-bar-track: #ffffff22;
+  --shelf-cover-title-shadow: 0 1px 10px rgb(0 0 0 / 70%);
+  --shelf-plate: linear-gradient(155deg, #1a1c20, #0e0f11 70%);
+  --shelf-plate-line: #ffffff10;
+  --shelf-plate-text: #c9ced5;
+  --shelf-tag-line: #ffffff2a;
+  --shelf-tag-bg: #ffffff08;
+  --shelf-tag-text: #c3c9d0;
+  /* Work marks (language, picture orientation) on a cover corner and in the list. */
+  --shelf-mark-text: #f2f4f6;
+  --shelf-mark-bg: rgb(11 13 16 / 65%);
+  --shelf-mark-line: #ffffff26;
+  --shelf-mark-blur: 8px;
+  --shelf-progress-glow: 0 0 8px #ffffff66;
+  --shelf-menu-shadow: 0 18px 50px #000a;
+  --color-scheme: dark;
+  --document-color-scheme: light;
+  --contrast-surface: #606366;
+  --contrast-memory-surface: #88705a;
+  --contrast-dream-surface: #606366;
+  --contrast-document-surface: var(--document-bg);
+  --document-bg: #f7f5ed;
+  --document-image: none;
+  --document-border-image: none;
+  --document-text: #292b2d;
+  --document-line: #d6d3c9;
+  --document-muted: #66675f;
+  --document-scrollbar: #b4b1a8;
+  --document-action: #393b36;
+  --document-hover: #e8e5db;
+  --document-focus: #21695d;
+  --document-shadow: 0 10px 36px #0003;
+  --surface-border-rgb: 128 128 128;
+  --shadow-rgb: 0 0 0;
+  --title-on-image: #fff;
+  --title-detail-on-image: #eceff2;
+  --title-accent-on-image: #e3e8ee;
+  --title-shadow: 0 1px 2px #000, 0 0 3px #000b, 0 3px 12px #0008;
+  --title-rule-shadow: 0 1px 4px #0009;
+  --crop-line: #ffffff66;
+  --crop-grid: #fff4;
+  --separator-bg: #000;
+  --effect-label: #b9b0c8;
+  --notice-hover: #dfe4ea;
+  --notice-shadow: 0 8px 24px #0005;
+  /* Theme layout parameters (see docs/theme-guide.md); defaults reproduce the built-in look. */
+  --dialogue-max-width: 900px;
+  --dialogue-padding: 0 0 4px;
+  --dialogue-bottom-space: 48px;
+  --dialogue-fade: 56px;
+  --dialogue-quick-top: -2px;
+  --dialogue-quick-right: -9px;
+  --dialogue-avatar-size: 100px;
+  /* The reading box under scene and narration text (off: alpha 0, no border). It is filled with --surface-rgb at
+   * --dialogue-box-alpha; --dialogue-box-inset keeps it off the screen edges where the text area reaches them. */
+  --dialogue-box-alpha: 0;
+  --dialogue-box-image: none;
+  --dialogue-box-frame: none;
+  /* Unset state overrides inherit the active theme's ordinary box, not the root's resolved value. */
+  --memory-dialogue-box-image: initial;
+  --dream-dialogue-box-image: initial;
+  --memory-dialogue-box-shadow: initial;
+  --dream-dialogue-box-shadow: initial;
+  --dialogue-box-border: 0 none;
+  --dialogue-box-radius: 0;
+  --dialogue-box-shadow: none;
+  --dialogue-box-inset: 0px;
+  --dialogue-sample-padding: 0;
+  /* On wide screens with room left of the text column, the avatar stands there unframed, up to this size. */
+  --dialogue-side-avatar-size: 300px;
+  /* Standing portraits: image height and hair line set by the screen alone, never by the dialogue (100cqh is the
+   * stage height, 100cqw its width, so tall narrow screens size figures by their width). Hair lines sink no lower than
+   * .3 image heights above --standing-band-top and image bottoms reach at least --standing-floor (the screen bottom on
+   * wide screens). */
+  --standing-height: min(100cqh, 175cqw);
+  --standing-hair: 8%;
+  --standing-band-top: 72%;
+  --standing-floor: 100%;
+  /* Side figures stand a set distance from the middle, so wide windows do not push them to the edges. */
+  --standing-left: calc(50% - min(24%, 360px));
+  --standing-right: calc(50% + min(24%, 360px));
+  --standing-left-narrow: 30%;
+  --standing-right-narrow: 70%;
+  --standing-back-brightness: .55;
+  /* Lines of text the dialogue holds at first (reading setting); narrow screens add the name row, notice and padding. */
+  --dialogue-lines: 3;
+  /* Line spacing of the reading text: the language's default plus the reading setting's steps of 0.1. */
+  --reading-line-base: 1.95;
+  --reading-line-step: 0;
+  --reading-line-height: calc(var(--reading-line-base) + var(--reading-line-step) * .1);
+  --reading-tracking: .035em;
+  --narrow-box-height: calc(var(--dialogue-lines) * var(--reading-line-height) * (var(--font-size) - 2px) + 112px);
+  --nameplate-padding: 0;
+  --nameplate-shift: none;
+  /* Nameplate shape. --nameplate-text is unset (initial): the name keeps the person's colour.
+   * The fill mixes the person's colour in by --nameplate-character-fill. */
+  --nameplate-rotate: 0deg;
+  --nameplate-font-size: 16px;
+  --nameplate-text: initial;
+  --nameplate-text-shadow: none;
+  --nameplate-fill: transparent;
+  --nameplate-character-fill: 0%;
+  --nameplate-border: 0 none;
+  --nameplate-radius: 2px;
+  --nameplate-shadow: none;
+  /* The name mark (#speaker::after): a short rule under the name by default. --name-mark-background unset means
+   * the person's colour. Its width is --name-rule-width. */
+  --name-mark-inset: auto auto -8px 0;
+  --name-mark-height: 2px;
+  --name-mark-transform: none;
+  --name-mark-border: 0 none;
+  --name-mark-radius: 1px;
+  --name-mark-background: initial;
+  --name-mark-shadow: none;
+  --name-mark-opacity: .85;
+  --continue-background: var(--gold);
+  --continue-line: var(--gold);
+  --continue-size: 6px;
+  --continue-rotate: 45deg;
+  --continue-dot: var(--continue-background);
+  /* Scroll marks (src/ui/scroll-mark.js): the hairline, and the dot with the part already read. */
+  --scroll-track: var(--line);
+  --scroll-mark: var(--gold);
+  --document-radius: 3px;
+  --toolbar-background: rgb(var(--surface-rgb) / 78%);
+  --toolbar-hover-line: #ffffff40;
+  --icon-hover-fill: #ffffff1c;
+  --toolbar-button-border: 0;
+  --toolbar-button-radius: 6px;
+  --toolbar-button-texture: none;
+  /* Menu chips (title card, chapter list, menu items): their outline, and the reading menu items' size and mark. */
+  --toolbar-button-shadow: inset 0 0 0 1px var(--line);
+  --toolbar-button-hover-shadow: inset 0 0 0 1px var(--toolbar-hover-line);
+  --menu-item-padding: 8px 14px;
+  --menu-item-font-size: 13px;
+  --menu-item-align: right;
+  --menu-mark-size: 5px;
+  --menu-mark-rotate: 45deg;
+  --menu-mark-radius: 0;
+  --menu-mark-border: 0 none;
+  --menu-mark-background: var(--gold);
+  --menu-mark-rest-opacity: 0;
+  /* The menu button at the top right; it takes the toolbar material while the toolbar shows. */
+  --menu-button-size: 34px;
+  --menu-button-border: 0 none;
+  --menu-button-background: transparent;
+  --menu-button-open-background: var(--toolbar-background);
+  --menu-button-shadow: none;
+  --menu-button-filter: drop-shadow(0 1px 2px rgb(var(--shadow-rgb) / 80%));
+  /* Hide, history and auto on the name row; the auto button while playing. */
+  --quick-button-width: 32px;
+  --quick-button-height: 30px;
+  --quick-button-gap: 2px;
+  --quick-button-border: 0 none;
+  --quick-button-background: transparent;
+  --quick-button-shadow: none;
+  --quick-icon-size: 19px;
+  --quick-icon-stroke: 1.5;
+  --quick-active-text: var(--gold);
+  --quick-active-background: transparent;
+  /* The place and time at the top right, optionally on a label. */
+  --place-padding: 0;
+  --place-border: 0 none;
+  --place-radius: 0;
+  --place-background: transparent;
+  --place-shadow: none;
+  --place-mark-display: block;
+  --place-mark-color: var(--scene-mark-color);
+  --window-texture: none;
+  --window-frame: none;
+  --chapter-rule-background: var(--gold);
+  --scene-mark-color: var(--gold);
+  --portrait-backing: #23262b;
+  --portrait-shadow: 0 0 0 1px #ffffff26, 0 6px 20px #0009;
+  --portrait-radius: 8px;
+  /* Avatars beside the text column and on narrow screens: unframed by default. */
+  --side-portrait-radius: 0;
+  --side-portrait-backing: none;
+  --side-portrait-shadow: none;
+  --side-portrait-bottom: initial;
+  --side-portrait-gap: 16px;
+  --side-portrait-panel: none;
+  --side-portrait-panel-content: none;
+  --side-portrait-panel-shadow: none;
+  --speaker-row-direction: row;
+  --speaker-row-align: center;
+  --speaker-row-gap: 14px;
+  --speaker-row-margin: 22px;
+  --speaker-layout-margin: 0px;
+  --narrow-portrait-radius: 0;
+  --narrow-portrait-backing: none;
+  --narrow-portrait-shadow: none;
+  --narrow-portrait-mask: none;
+  --narrow-portrait-left: 8px;
+  --narrow-portrait-top: -34px;
+  /* -1 puts the avatar under the reading box, so a box with a fill covers whatever part of it overlaps. */
+  --narrow-portrait-layer: initial;
+  --narrow-portrait-text-left: 20px;
+  /* Beside a narrow avatar: where the name starts, the name mark's shape and the name row's alignment, height and
+   * lift off its foot (unset: as without an avatar). */
+  --narrow-name-left: calc(var(--dialogue-avatar-size) - 14px);
+  --narrow-name-mark-inset: initial;
+  --narrow-name-mark-width: initial;
+  --narrow-speaker-row-align: initial;
+  --narrow-speaker-row-height: initial;
+  --narrow-speaker-row-lift: initial;
+  --cut-in-radius: 4px;
+}
+
+/* An English work sets lang="en" on the page while it is open: its own font chain, which themes set with --theme-*-font-en. */
+:root[lang="en"] {
+  --ui-font: var(--theme-ui-font-en, "VN Inter", "Inter", system-ui, sans-serif);
+  --title-font: var(--theme-title-font-en, "VN Crimson Pro", "Crimson Pro", Georgia, serif);
+  --reading-font: var(--user-reading-font, var(--theme-reading-font-en, "VN Crimson Pro", "Crimson Pro", Georgia, serif));
+  /* Latin text sets tighter than Chinese and takes no extra tracking. */
+  --reading-line-base: 1.6;
+  --reading-tracking: 0;
+}
+
+/* A Japanese work sets lang="ja": Japanese fonts first, so kanji take their Japanese forms; themes set --theme-*-font-ja. */
+:root[lang="ja"] {
+  --ui-font: var(--theme-ui-font-ja, "Noto Sans JP", "Yu Gothic UI", "Hiragino Sans", "Meiryo", system-ui, sans-serif);
+  --title-font: var(--theme-title-font-ja, "Noto Serif JP", "Yu Mincho", "Hiragino Mincho ProN", "MS PMincho", serif);
+  --reading-font: var(--user-reading-font, var(--theme-reading-font-ja, "Noto Serif JP", "Yu Mincho", "Hiragino Mincho ProN", "MS PMincho", serif));
+}
+
+/* A Traditional Chinese work sets lang="zh-Hant": traditional fonts, whose characters the simplified ones may lack;
+ * themes set --theme-*-font-hant. */
+:root[lang="zh-Hant"] {
+  --ui-font: var(--theme-ui-font-hant, "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif);
+  --title-font: var(--theme-title-font-hant, "Noto Serif TC", "Source Han Serif TC", "Songti TC", "PMingLiU", serif);
+  --reading-font: var(--user-reading-font, var(--theme-reading-font-hant, "VN CJK Punctuation", "Crimson Pro", "Noto Serif TC",
+    "Source Han Serif TC", "Songti TC", "PMingLiU", serif));
+}
+
+@media (max-width: 600px) {
+  :root {
+    --dialogue-padding: 22px 20px 6px;
+    --dialogue-quick-top: 18px;
+    --dialogue-quick-right: 12px;
+    --dialogue-avatar-size: 104px;
+    --quick-button-width: 36px;
+    --quick-button-height: 32px;
+  }
+}

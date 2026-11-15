@@ -1,0 +1,27 @@
+@vn 0.10
+@book passage_pages title="雨与记忆"
+@chapter ch01 title="卷首"
+@narration essay
+// @vn-page
+@source p000001
+雨声有时像一扇门。
+// @vn-page
+@source p000002
+门后并不总是旧事。
+有时只是一个已经忘记的清晨。
+// @vn-page
+@source p000003
+我们记得窗上的水痕，也记得杯沿的温度。
+@source p000004
+那些细节没有解释什么，却使清晨重新有了轮廓。
+等到雨停，轮廓便又慢慢淡去。
+// @vn-page
+@source p000005
+可是记忆并不因此消失。
+它藏在下一次雨声里。
+我们未必认得那扇门。
+推开时，却仍知道自己曾经来过。
+于是又停了一会儿。
+@narration return
+@source p000006
+天亮了。

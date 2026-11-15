@@ -1,0 +1,12 @@
+@vn 0.10
+@book bust_example title="蓝外套"
+@character lin label="林舟" color="#79b9ae"
+@chapter ch1 title="来信"
+@scene first
+@source p1
+{{lin|林舟}}拢了拢蓝色外套。
+@source p2
+[lin] 信已经送到了。
+@source p3
+[lin|心声] 希望明天是个晴天。
+// @vn-director {"version":13,"chapterId":"ch1","backgrounds":[],"omittedBlocks":[],"cgs":[],"generation":{"backgrounds":false,"locationBackgrounds":false,"cgs":false,"cutIns":false,"characterVariants":false,"locationVariants":false,"standing":true,"ambients":false},"artStyles":{"background":"Soft watercolor illustration with delicate ink outlines.","character":"Soft watercolor illustration with delicate ink outlines."},"cutIns":[],"cutInUses":[],"characters":[{"characterId":"lin","evidence":["p1"],"assumptions":["原文未说明脸部与发型，设计为年轻男性、黑色短发、自然眉眼。","原文未说明外套款式，选择朴素的蓝色棉布外套。"],"face":"Soft watercolor illustration with delicate ink outlines, visual novel waist-up character cutout on a 2:3 portrait canvas. A young man with short black hair, a gently squared jaw, straight brows and attentive eyes, wearing a simple blue cotton coat. Relaxed upright posture, slightly turned to the right, calm everyday expression. Entire crown, topmost hair, shoulders and upper-body silhouette inside the frame, visible headroom, waist at the bottom edge. Natural neutral lighting and colors, opaque character with softly antialiased edges, fully transparent background with an alpha channel.","body":""}],"variants":[],"states":[],"ambients":[],"ambientBlocks":[]}

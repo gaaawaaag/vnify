@@ -1,0 +1,1056 @@
+:root {
+  background: var(--bg);
+  color: var(--text);
+  color-scheme: var(--color-scheme);
+}
+
+/* Shared materials consume tokens; geometry stays in component stylesheets. */
+
+body {
+  color: var(--text);
+  cursor: var(--cursor-default);
+}
+
+#stage, .character-hover {
+  cursor: var(--cursor-default);
+}
+
+button, a[href], [role="button"], summary, select, .file-button, .import-pick,
+input:is([type="button"], [type="submit"], [type="file"], [type="checkbox"], [type="radio"], [type="range"]) {
+  cursor: var(--cursor-pointer);
+}
+
+.annotation-mention, .term-mention {
+  cursor: var(--cursor-help);
+}
+
+button:disabled, #speaker:disabled {
+  cursor: var(--cursor-default);
+}
+
+header {
+  background: var(--chrome);
+  border-color: var(--line);
+}
+
+/* The home photo shows through the header. */
+#home-header {
+  background: transparent;
+  border-color: transparent;
+}
+
+button:hover {
+  background: var(--hover);
+  border-color: var(--muted);
+}
+
+button:focus-visible, a:focus-visible, [role="button"]:focus-visible, input:focus-visible, textarea:focus-visible,
+select:focus-visible, summary:focus-visible, #stage:focus-visible {
+  outline-color: var(--focus);
+}
+
+button.primary {
+  background: var(--gold);
+  color: var(--primary-text);
+  border-color: var(--gold);
+}
+
+button.primary:not(:disabled):hover {
+  filter: brightness(1.08);
+}
+
+.brand-dot {
+  color: var(--muted);
+}
+
+.intro p, .intro small, .welcome-foot, #save-status, .muted, .shelf-meta, .shelf-author,
+#scene-detail, #chapter-detail {
+  color: var(--muted);
+}
+
+#reader {
+  background: var(--bg);
+}
+
+#reader.has-background {
+  background: transparent;
+}
+
+/* One surface for dialogue, Cast, tooltips and every modal. */
+
+dialog, .character-hover {
+  background: var(--glass);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
+  text-shadow: none;
+}
+
+dialog::backdrop {
+  background: var(--backdrop);
+  backdrop-filter: blur(4px);
+}
+
+/* Cast has no window: it covers the stage, and the scene shows through a blurred scrim. */
+
+#cast-dialog, #gallery-dialog, .reference-panel, .settings-panel {
+  background: var(--cast-scrim);
+  color: var(--text);
+  -webkit-backdrop-filter: blur(var(--cast-blur));
+  backdrop-filter: blur(var(--cast-blur));
+  text-shadow: 0 1px 6px rgb(var(--shadow-rgb) / 70%);
+}
+
+#gallery-count, #gallery-reveal, #gallery-categories button, #gallery-viewer small, .gallery-item.fogged .gallery-name {
+  color: var(--muted);
+}
+
+#gallery-reveal[aria-checked="true"], #gallery-categories button:hover, #gallery-categories button[aria-current="true"] {
+  color: var(--text);
+}
+
+#gallery-categories button:hover {
+  background: var(--hover);
+}
+
+#gallery-categories button[aria-current="true"] {
+  border-color: var(--gold);
+}
+
+.gallery-switch {
+  background: var(--line);
+}
+
+.gallery-switch::after {
+  background: var(--text);
+}
+
+#gallery-reveal[aria-checked="true"] .gallery-switch {
+  background: var(--gold);
+}
+
+#gallery-reveal[aria-checked="true"] .gallery-switch::after {
+  background: var(--bg);
+}
+
+.gallery-thumb {
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow);
+}
+
+.gallery-item.fogged .gallery-thumb::after {
+  background: var(--gallery-fog-tint);
+}
+
+.gallery-eye > span, .gallery-step {
+  border: 1px solid var(--line);
+  background: rgb(var(--shadow-rgb) / 60%);
+  color: var(--text);
+}
+
+#gallery-viewer {
+  background: var(--gallery-viewer-bg);
+}
+
+#gallery-viewer-image {
+  box-shadow: var(--shadow);
+}
+
+.reference-count, .reference-back, .reference-entry, .reference-meta, .reference-empty {
+  color: var(--muted);
+}
+
+.reference-entry:hover, .reference-entry[aria-current="true"] {
+  color: var(--text);
+}
+
+.reference-entry:hover {
+  background: var(--hover);
+}
+
+.reference-entry[aria-current="true"] {
+  border-left-color: var(--gold);
+}
+
+.reference-title::after {
+  background: var(--gold);
+}
+
+.reference-filter {
+  border: 1px solid var(--line);
+  background: var(--field);
+  color: var(--text);
+}
+
+/* Dividers are inset shadows: thin borders over the blurred panel render as a bright double line in Chromium. */
+@media (max-width: 600px) {
+  .reference-panel[data-narrow="stack"] .reference-detail, .reference-panel[data-narrow="drill"] .reference-entry {
+    box-shadow: inset 0 -1px var(--line);
+  }
+}
+
+.setting-group + .setting-group {
+  border-top: 1px solid var(--line);
+}
+
+.setting-row output, .setting-row.is-fixed > span:first-child {
+  color: var(--muted);
+}
+
+.setting-row input[type="range"] {
+  accent-color: var(--gold);
+}
+
+.setting-choice {
+  border: 1px solid var(--line);
+  background: var(--field);
+}
+
+.setting-choice button {
+  color: var(--muted);
+}
+
+.setting-choice button[aria-pressed="true"] {
+  background: var(--gold);
+  color: var(--bg);
+}
+
+.settings-sample {
+  background-color: var(--panel);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow);
+}
+
+.settings-sample-band {
+  background: rgb(var(--scrim-rgb) / var(--dialogue-alpha));
+  color: var(--text);
+}
+
+.settings-sample-band::before {
+  background: linear-gradient(transparent, rgb(var(--scrim-rgb) / var(--dialogue-alpha)));
+}
+
+/* The sample text wears the reading box, so a themed box shows here too. */
+#settings-sample-text {
+  padding: var(--dialogue-sample-padding);
+  background-color: rgb(var(--surface-rgb) / var(--dialogue-box-alpha));
+  background-image: var(--dialogue-box-image);
+  border: var(--dialogue-box-border);
+  border-image: var(--dialogue-box-frame);
+  border-radius: var(--dialogue-box-radius);
+  box-shadow: var(--dialogue-box-shadow);
+}
+
+:is(#cast-dialog, #gallery-dialog, .reference-panel, .settings-panel)::backdrop {
+  background: transparent;
+  backdrop-filter: none;
+}
+
+/* The reading box is off by default: the text sits on the band. Its colour is --surface-rgb, which memories and
+ * dreams change on the card, so a themed box takes their tint. */
+#reader .reading-card {
+  color: var(--text);
+  background-color: rgb(var(--surface-rgb) / var(--dialogue-box-alpha));
+  background-image: var(--dialogue-box-image);
+  border: var(--dialogue-box-border);
+  border-image: var(--dialogue-box-frame);
+  border-radius: var(--dialogue-box-radius);
+  box-shadow: var(--dialogue-box-shadow);
+  text-shadow: var(--dialogue-text-shadow);
+}
+
+#dialogue-avatar {
+  border: 0;
+  border-radius: var(--portrait-radius);
+  background: var(--portrait-backing);
+  box-shadow: var(--portrait-shadow);
+}
+
+/* Beside the text column and on narrow screens the avatar is unframed by default: the picture alone.
+ * Themes may frame them with --side-portrait-* and --narrow-portrait-*. */
+#dialogue-avatar.is-side {
+  border-radius: var(--side-portrait-radius);
+  background: var(--side-portrait-backing);
+  box-shadow: var(--side-portrait-shadow);
+}
+
+@media (max-width: 600px) {
+  #dialogue-avatar {
+    border-radius: var(--narrow-portrait-radius);
+    background: var(--narrow-portrait-backing);
+    box-shadow: var(--narrow-portrait-shadow);
+  }
+}
+
+#reader-quick button:hover {
+  color: var(--text);
+  background: var(--hover);
+}
+
+#reader-quick button[aria-pressed="true"] {
+  color: var(--quick-active-text);
+}
+
+#reader-quick button[aria-pressed="true"]:not(:hover) {
+  background-color: var(--quick-active-background);
+}
+
+/* Memories and dreams tint the band and fade the picture. */
+#reader.memory-mode {
+  --scrim-rgb: var(--memory-scrim-rgb);
+}
+
+#reader.dream-mode {
+  --scrim-rgb: var(--dream-scrim-rgb);
+}
+
+#reader-background {
+  transition: filter .4s ease;
+}
+
+#reader.memory-mode:not(.document-mode) #reader-background {
+  filter: var(--memory-image-filter);
+}
+
+#reader.dream-mode:not(.document-mode) #reader-background {
+  filter: var(--dream-image-filter);
+}
+
+#reader .reading-card #text {
+  color: var(--text);
+}
+
+#thought-label {
+  color: var(--character-color, var(--gold));
+}
+
+#reader .reading-card.thought #text {
+  color: color-mix(in srgb, var(--character-color, var(--gold)) 65%, var(--text));
+}
+
+#reader .reading-card.memory #memory {
+  color: var(--memory);
+}
+
+#reader .reading-card.memory {
+  --surface-rgb: var(--memory-surface-rgb);
+  background-image: var(--memory-dialogue-box-image, var(--dialogue-box-image));
+  box-shadow: var(--memory-dialogue-box-shadow, var(--dialogue-box-shadow));
+}
+
+#reader .reading-card.dream #memory {
+  color: var(--dream);
+}
+
+#reader .reading-card.dream {
+  --surface-rgb: var(--dream-surface-rgb);
+  background-image: var(--dream-dialogue-box-image, var(--dialogue-box-image));
+  box-shadow: var(--dream-dialogue-box-shadow, var(--dialogue-box-shadow));
+}
+
+#reader .reading-card.memory #text {
+  color: color-mix(in srgb, var(--memory) 70%, var(--text));
+}
+
+#reader .reading-card.dream #text {
+  color: color-mix(in srgb, var(--dream) 70%, var(--text));
+}
+
+#reader .reading-card #advance-hint {
+  color: var(--muted);
+}
+
+
+/* Include the character notice in the same surface, even while its button is hidden. */
+
+/* Documents retain a solid paper surface. Only the scene blurs. */
+
+#reader.document-mode #reader-background {
+  filter: blur(3px);
+}
+
+#reader.document-mode #stage {
+  cursor: var(--cursor-default);
+}
+
+#reader.document-mode #reading-stack .reading-card {
+  text-shadow: none;
+  border: 1px solid var(--document-line);
+  border-radius: var(--document-radius);
+  background: var(--document-bg);
+  background-image: var(--document-image);
+  border-image: var(--document-border-image);
+  color: var(--document-text);
+  color-scheme: var(--document-color-scheme);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: var(--document-shadow);
+}
+
+#reader.document-mode #reading-body {
+  scrollbar-color: var(--document-scrollbar) var(--document-bg);
+}
+
+#reader.document-mode .reading-card #text {
+  color: var(--document-text);
+}
+
+#reader.document-mode #memory {
+  color: var(--document-muted);
+}
+
+/* Verse sits in a window-material frame instead of the paper, so it stays readable on any image. */
+#reader.verse-mode #reading-stack .reading-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--glass);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  color-scheme: var(--color-scheme);
+  text-shadow: none;
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
+}
+
+#reader.verse-mode .reading-card #text {
+  color: var(--text);
+}
+
+#reader.verse-mode #reading-body {
+  scrollbar-color: var(--line) transparent;
+}
+
+.scroll-mark {
+  background: var(--scroll-track);
+}
+
+.scroll-mark i {
+  background: var(--scroll-mark);
+}
+
+/* On the document paper the mark takes the paper's own line colours. */
+#reader.document-mode:not(.verse-mode) .reading-card {
+  --scroll-track: var(--document-line);
+  --scroll-mark: var(--document-scrollbar);
+}
+
+#document-next {
+  color: var(--document-action);
+  background: transparent;
+  border: 1px solid var(--document-line);
+}
+
+#document-next:hover {
+  background: var(--document-hover);
+  border-color: var(--document-line);
+}
+
+#document-next:focus-visible {
+  outline: 2px solid var(--document-focus);
+}
+
+#reader .reader-top, #reader .reader-bottom,
+#reader.has-background .reader-top, #reader.has-background .reader-bottom {
+  background: transparent;
+  color: var(--text);
+}
+
+/* Menu chips: the title card, the chapter list and the menu items share the toolbar material. */
+#reader :is(#open-contents, #chapter-list button, #reader-menu-list button) {
+  position: relative;
+  isolation: isolate;
+  border: var(--toolbar-button-border);
+  color: var(--text);
+  background-color: var(--toolbar-background);
+  box-shadow: var(--toolbar-button-shadow);
+  -webkit-backdrop-filter: blur(calc(var(--blur) * .8));
+  backdrop-filter: blur(calc(var(--blur) * .8));
+}
+
+#reader :is(#chapter-list button, #reader-menu-list button):is(:hover, :focus-visible), #reader #open-contents:is(:hover, [aria-expanded=true]) {
+  color: var(--gold);
+  background-color: var(--toolbar-background);
+  background-image: linear-gradient(var(--hover), var(--hover));
+  box-shadow: var(--toolbar-button-hover-shadow);
+}
+
+#reader #reader-menu-list button::before {
+  background: var(--menu-mark-background);
+}
+
+/* Close and back icons: the close circle fills faintly on hover; both brighten with their button. */
+button:is(:hover, :focus-visible) > .icon-close {
+  fill: var(--icon-hover-fill);
+}
+
+button:is(:hover, :focus-visible):has(> .ui-icon) {
+  color: var(--text);
+}
+
+#reader #chapter-list button[aria-current=true] {
+  color: var(--gold);
+  box-shadow: inset 2px 0 0 var(--gold), inset 0 0 0 1px var(--line);
+}
+
+.menu-rule {
+  background: var(--line);
+}
+
+#reader .sub, #reader #position, #source-info {
+  color: var(--muted);
+  text-shadow: none;
+}
+
+#reader #context, #reader #reader-menu {
+  color: var(--context-text);
+}
+
+#reader #context-time, #reader #save-status {
+  color: var(--context-muted);
+  text-shadow: var(--context-shadow);
+}
+
+#reader #save-status svg {
+  filter: drop-shadow(0 1px 2px rgb(var(--shadow-rgb) / 80%));
+}
+
+#reader #save-status[data-state=saved] .save-ok {
+  stroke: var(--gold);
+}
+
+#reader #save-status[data-state=failed] {
+  color: var(--error);
+}
+
+#reader #reader-menu {
+  border: var(--menu-button-border);
+  background: var(--menu-button-background);
+  box-shadow: var(--menu-button-shadow);
+  filter: var(--menu-button-filter);
+}
+
+#reader #reader-menu:hover, #reader:not(.chrome-hidden) #reader-menu {
+  background: var(--menu-button-open-background);
+  filter: none;
+}
+
+.progress-track {
+  background: var(--line);
+}
+
+#backlog::before {
+  background: linear-gradient(180deg, rgb(var(--scrim-rgb) / 62%), rgb(var(--scrim-rgb) / 84%) 45%, rgb(var(--scrim-rgb) / 88%));
+}
+
+.backlog-entry, .backlog-entry:hover {
+  border: 0;
+  background: none;
+  color: var(--muted);
+}
+
+.backlog-entry:hover .backlog-text {
+  color: var(--text);
+}
+
+.backlog-entry.current {
+  color: var(--text);
+}
+
+.backlog-name {
+  color: var(--gold);
+}
+
+.backlog-name small {
+  color: var(--muted);
+}
+
+#backlog-close {
+  border: var(--toolbar-button-border);
+  border-radius: var(--toolbar-button-radius);
+  color: var(--text);
+  background: var(--toolbar-background);
+}
+
+@media (max-width: 600px) {
+  #backlog::before {
+    background: rgb(var(--scrim-rgb));
+  }
+}
+
+#reader #character-notice-button, #reader.has-background #character-notice-button {
+  color: var(--text);
+  text-shadow: none;
+}
+
+#character-notice-button:not([hidden]) {
+  background: var(--glass);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+/* Titles float over the scene; only the glyphs receive contrast treatment. */
+
+#reader #scene-intro, #reader.has-background #scene-intro,
+#reader #chapter-intro, #reader.has-background #chapter-intro {
+  background: transparent;
+  color: var(--text);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  text-shadow: var(--title-shadow);
+}
+
+.chapter-page {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+#chapter-name {
+  color: var(--text);
+}
+
+.chapter-rule {
+  background: var(--gold);
+}
+
+#reader.has-background :is(#chapter-name, #scene-name) {
+  color: var(--title-on-image);
+}
+
+#reader.has-background :is(#chapter-detail, #scene-detail) {
+  color: var(--title-detail-on-image);
+}
+
+#reader.has-background :is(#chapter-kicker, .scene-mark) {
+  color: var(--title-accent-on-image);
+}
+
+#reader.has-background .chapter-rule {
+  background: var(--title-accent-on-image);
+  box-shadow: var(--title-rule-shadow);
+}
+
+/* Cast cards: the figure stands on a faint floor in the person's colour. */
+
+.cast-toolbar h2 {
+  color: var(--text);
+}
+
+#cast-close, #cast-back, .character-section-title, .cast-group-title {
+  color: var(--muted);
+}
+
+.cast-figure {
+  background: radial-gradient(ellipse 70% 38% at 50% 100%, color-mix(in srgb, var(--person-color) 22%, transparent), transparent 72%);
+  border-color: color-mix(in srgb, var(--person-color) 45%, transparent);
+}
+
+.cast-person:hover .cast-figure, .cast-person:focus-visible .cast-figure {
+  background-color: var(--hover);
+}
+
+.cast-initial {
+  color: color-mix(in srgb, var(--person-color) 30%, transparent);
+}
+
+.character-relation-link {
+  color: var(--person-color);
+  background: color-mix(in srgb, var(--person-color) 14%, transparent);
+  border-color: color-mix(in srgb, var(--person-color) 34%, transparent);
+}
+
+.character-relation-link:hover {
+  background: color-mix(in srgb, var(--person-color) 26%, transparent);
+}
+
+.cast-person-copy > span, .character-summary, .character-full-name,
+.character-appearance, .cast-empty, .term-list dd {
+  color: var(--muted);
+}
+
+.character-entries, .character-hover {
+  color: var(--text);
+}
+
+.character-appearance {
+  border-color: var(--line);
+}
+
+.character-picture>.avatar-frame {
+  box-shadow: none;
+}
+
+/* Settings and auxiliary tools share the theme, including native form controls. */
+
+textarea, select {
+  background: var(--field);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+
+pre {
+  color: var(--error);
+  background: var(--error-bg);
+}
+
+#toast {
+  background: var(--panel);
+  color: var(--text);
+  border-color: var(--line);
+  box-shadow: var(--shadow);
+}
+
+@media(prefers-reduced-transparency:reduce) {
+  :root {
+    --glass: var(--panel);
+    --chrome: var(--panel);
+    --blur: 0px;
+  }
+}
+
+.shelf-open, .shelf-open:hover, .shelf-row-open, .shelf-row-open:hover {
+  background: none;
+  color: var(--text);
+}
+
+/* The home photo: darker at the top for the header and in the lower left for the book to continue, with fine grain. */
+#home-backdrop {
+  background: var(--home-photo-bg);
+}
+
+#home-backdrop::before {
+  background: var(--home-photo-scrim);
+}
+
+#home-backdrop::after {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: .07;
+  mix-blend-mode: overlay;
+}
+
+.brand {
+  text-shadow: var(--home-brand-shadow);
+}
+
+/* The shelf on frosted glass, and the band above it that turns into glass gradually. */
+#home-sheet, .home-fade {
+  -webkit-backdrop-filter: blur(var(--home-glass-blur)) saturate(1.12);
+  backdrop-filter: blur(var(--home-glass-blur)) saturate(1.12);
+}
+
+#home-sheet {
+  background: var(--home-glass);
+}
+
+.home-fade {
+  background: linear-gradient(180deg, transparent, var(--home-glass));
+}
+
+/* Icon buttons */
+.icon-button {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+}
+
+.icon-button:hover {
+  border-color: var(--home-icon-hover-line);
+  background: var(--home-icon-hover);
+}
+
+/* Over the photo the header icons stand alone, with a soft shadow instead of a box. */
+#home-header .icon-button {
+  border-color: transparent;
+  background: transparent;
+  color: var(--home-header-icon);
+  filter: drop-shadow(var(--home-icon-shadow));
+}
+
+#home-header .icon-button:is(:hover, [aria-expanded="true"]) {
+  border-color: transparent;
+  background: transparent;
+  color: var(--home-header-icon-hover);
+}
+
+.icon-button.outline {
+  border-color: var(--home-icon-hover-line);
+}
+
+#welcome .icon-button.primary {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--primary-text);
+}
+
+#welcome .icon-button.primary:hover {
+  border-color: var(--home-primary-hover);
+  background: var(--home-primary-hover);
+  filter: none;
+}
+
+.icon-button[data-tip]::after {
+  border: 1px solid var(--line);
+  background: var(--home-tip);
+  color: var(--text);
+}
+
+.shelf-views {
+  border: 1px solid var(--home-rule);
+}
+
+.shelf-views .icon-button {
+  color: var(--home-faint);
+}
+
+.shelf-views .icon-button:hover {
+  color: var(--text);
+}
+
+.shelf-views .icon-button[aria-pressed="true"] {
+  background: var(--home-icon-hover);
+  color: var(--text);
+}
+
+:is(#home-background-menu, #home-language-menu) {
+  border: 1px solid var(--line);
+  background: var(--home-menu);
+  box-shadow: var(--shelf-menu-shadow);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+:is(#home-background-menu, #home-language-menu) button {
+  background: none;
+  color: var(--text);
+}
+
+:is(#home-background-menu, #home-language-menu) button:hover {
+  background: var(--hover);
+}
+
+:is(#home-background-menu, #home-language-menu) button[aria-checked="true"]::after {
+  background: var(--gold);
+}
+
+:is(#home-background-menu, #home-language-menu) svg, :is(#home-background-menu, #home-language-menu) label, #home-language-menu .menu-code {
+  color: var(--muted);
+}
+
+:is(#home-background-menu, #home-language-menu) hr {
+  border-color: var(--line);
+}
+
+#home-dim {
+  accent-color: var(--gold);
+}
+
+/* Continue reading */
+.resume-cover {
+  background: var(--panel);
+  box-shadow: var(--home-resume-shadow);
+}
+
+.resume-cover::after {
+  box-shadow: inset 0 0 0 1px var(--home-resume-edge);
+  background: var(--home-resume-sheen);
+}
+
+.resume-cover.empty {
+  background: var(--shelf-plate);
+}
+
+#welcome .resume-go {
+  background: var(--home-resume-button);
+  box-shadow: var(--home-resume-button-shadow);
+  color: var(--home-resume-text);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+#welcome .resume-go:hover {
+  background: var(--home-resume-text);
+  color: var(--primary-text);
+}
+
+.resume-track {
+  stroke: var(--home-resume-track);
+}
+
+.resume-arc {
+  stroke: var(--home-resume-text);
+}
+
+#welcome .resume-go:hover .resume-arc {
+  stroke: transparent;
+}
+
+.resume-label {
+  color: var(--home-resume-muted);
+}
+
+.resume-label::after {
+  background: var(--home-resume-rule);
+}
+
+.resume-title {
+  color: var(--home-resume-text);
+  text-shadow: var(--home-resume-text-shadow);
+}
+
+.resume-meta {
+  color: var(--home-resume-muted);
+  text-shadow: var(--home-resume-text-shadow);
+}
+
+.resume-sep {
+  opacity: .5;
+}
+
+/* Shelf */
+.shelf-head {
+  border-bottom: 1px solid var(--home-rule);
+}
+
+#shelf-heading {
+  color: var(--muted);
+}
+
+#shelf-count, #shelf-page, .welcome-foot {
+  color: var(--home-faint);
+}
+
+.welcome-foot {
+  border-top: 1px solid var(--home-rule);
+}
+
+.shelf-cover {
+  border: 1px solid var(--shelf-cover-line);
+  background: var(--panel);
+  box-shadow: var(--shelf-cover-shadow);
+}
+
+.shelf-open:not(:disabled):is(:hover, :focus-visible) .shelf-cover {
+  border-color: var(--shelf-cover-hover-line);
+  box-shadow: var(--shelf-cover-hover-shadow);
+}
+
+.shelf-cover img {
+  filter: var(--shelf-cover-filter);
+}
+
+.shelf-open:not(:disabled):hover .shelf-cover img {
+  filter: none;
+}
+
+.shelf-cover:not(.empty)::before {
+  background: var(--shelf-cover-tint);
+  mix-blend-mode: soft-light;
+  opacity: var(--shelf-cover-tint-opacity);
+}
+
+#shelf[data-view="tall"] .shelf-cover::after {
+  background: var(--shelf-spine);
+}
+
+#shelf[data-view="tall"] .shelf-cover-title {
+  color: var(--home-resume-text);
+  text-shadow: var(--shelf-cover-title-shadow);
+}
+
+.shelf-cover.empty {
+  background: var(--shelf-plate);
+}
+
+.shelf-cover.empty::before {
+  border: 1px solid var(--shelf-plate-line);
+}
+
+#shelf .shelf-cover.empty .shelf-cover-title {
+  color: var(--shelf-plate-text);
+  text-shadow: none;
+}
+
+.shelf-bar {
+  background: var(--shelf-bar-track);
+}
+
+.shelf-bar i {
+  background: var(--gold);
+}
+
+.shelf-tag {
+  border-color: var(--shelf-tag-line);
+  background: var(--shelf-tag-bg);
+  color: var(--shelf-tag-text);
+}
+
+.shelf-cover .work-marks {
+  border-color: var(--shelf-mark-line);
+  background: var(--shelf-mark-bg);
+  color: var(--shelf-mark-text);
+  -webkit-backdrop-filter: blur(var(--shelf-mark-blur));
+  backdrop-filter: blur(var(--shelf-mark-blur));
+}
+
+.shelf-cover.empty .work-marks, .shelf-row .work-marks {
+  border-color: var(--line);
+  background: none;
+  color: var(--muted);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.shelf-progress {
+  background: rgb(var(--scrim-rgb) / 62%);
+  color: var(--text);
+}
+
+.shelf-progress-bar {
+  background: var(--gold);
+  box-shadow: var(--shelf-progress-glow);
+}
+
+.shelf-row {
+  border-bottom: 1px solid var(--home-rule);
+}
+
+.shelf-row:has(.shelf-row-open:not(:disabled):hover) {
+  background: var(--home-cell-hover);
+}
+
+.shelf-row .shelf-where, .shelf-progress-cell {
+  color: var(--muted);
+}
+
+.shelf-when {
+  color: var(--home-faint);
+}
+
+.shelf-more {
+  border-color: transparent;
+  color: var(--muted);
+}
+
+.shelf-more:is(:hover, [aria-expanded="true"]) {
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.shelf-menu {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: var(--shelf-menu-shadow);
+}
+
+.shelf-menu a, .shelf-menu button {
+  background: none;
+  color: var(--text);
+}
+
+.shelf-menu a:hover, .shelf-menu button:hover {
+  background: var(--hover);
+}

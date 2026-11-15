@@ -1,0 +1,20 @@
+@vn 0.10
+@book variant-demo title="雨站（差分样例）"
+@character lin label="林舟" color="#79b9ae"
+@location station label="旧车站"
+@chapter ch1 title="雨站"
+@scene s1 loc=station time="傍晚"
+@source p1
+雨还没有落下。
+[lin] 车应该快到了。
+@source p2
+一阵急雨浇透了站台，林舟没来得及躲。
+[lin] 这下全湿了。
+@source p3
+站台的灯闪了几下，熄灭了。
+[lin] 连灯也坏了。
+@source p4
+过了一会儿，灯又亮了起来。
+[lin] 总算能看清了。
+
+// @vn-director {"version":13,"chapterId":"ch1","backgrounds":[{"locations":["station"],"blocks":["s1"],"prompt":"A small rural station platform at dusk."}],"omittedBlocks":[],"cgs":[],"generation":{"backgrounds":true,"locationBackgrounds":true,"cgs":false,"cutIns":false,"characterVariants":true,"locationVariants":true,"standing":true,"ambients":false},"artStyles":{"background":"Soft watercolor.","character":"Soft painted illustration."},"cutIns":[],"cutInUses":[],"characters":[{"characterId":"lin","evidence":[],"assumptions":["外貌为补全设计。"],"face":"A young adult with short black hair.","body":"A grey coat."}],"variants":[{"id":"ch1.lin-wet","entityId":"lin","name":"淋湿","reason":"急雨后一直湿着。","body":"A soaked grey coat, wet hair."},{"id":"ch1.station-dark","entityId":"station","name":"停电","reason":"灯灭的几句。","prompt":"The same small rural station platform in darkness, lamps out."}],"states":[{"entityId":"lin","from":"s1:3","variant":"ch1.lin-wet"},{"entityId":"station","from":"s1:5","to":"s1:6","variant":"ch1.station-dark"}],"ambients":[],"ambientBlocks":[]}

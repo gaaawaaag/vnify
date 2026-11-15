@@ -1,0 +1,54 @@
+/* 主题模板：复制到 styles/themes/<id>/theme.css，把 my-theme 换成主题 ID，按需取消注释。
+   只能设置变量（docs/theme-guide.md），url() 写主题文件夹内的相对路径。换图标另写 icons.svg 并在登记中声明。 */
+
+/* @font-face { font-family: "my-theme-title"; src: url(fonts/title.woff2) format("woff2"); font-display: swap; } */
+
+:root[data-theme="my-theme"] {
+  /* 基本配色 */
+  /* --bg: #0a0b0d; --text: #e6e9ed; --muted: #8f96a0; --gold: #e8ecf0; --accent: var(--gold); --line: #ffffff1c; --focus: #d3d9e0; */
+
+  /* 阅读框材质（R G B 三个数）与人物色对比底色（6 位十六进制） */
+  /* --surface-rgb: 14 15 17; --card-radius: 10px; --contrast-surface: #606366; */
+
+  /* 字体（字号由读者控制） */
+  /* --theme-title-font: "my-theme-title", serif; --theme-reading-font: serif; */
+
+  /* 布局参数 */
+  /* --dialogue-max-width: 1100px; --dialogue-padding: 26px 36px 16px; --dialogue-bottom-space: 16px; */
+  /* --nameplate-padding: 4px 18px; --nameplate-shift: 0 -8px; --name-rule-width: 0; */
+
+  /* 阅读框外形（默认没有框，文字压在底幕上） */
+  /* --dialogue-box-alpha: .92; --dialogue-box-border: 2px solid #22305a; --dialogue-box-radius: 20px; --dialogue-box-shadow: 5px 6px 0 #22305a; */
+  /* --dialogue-sample-padding: 14px 18px; */
+
+  /* 名牌与名字记号 */
+  /* --nameplate-fill: #37c4bd; --nameplate-text: #fff; --nameplate-border: 2px solid #22305a; --nameplate-radius: 10px; --nameplate-rotate: -2deg; */
+  /* --name-rule-width: 22px; --name-mark-height: 22px; --name-mark-inset: 50% auto auto calc(100% - 6px); --name-mark-transform: translateY(-50%); */
+  /* --name-mark-radius: 50%; --name-mark-background: #ffd84a; --name-mark-border: 2px solid #22305a; --name-mark-opacity: 1; */
+
+  /* 按钮与地点 */
+  /* --quick-button-width: 34px; --quick-button-height: 34px; --quick-button-border: 2px solid #22305a; --quick-button-background: #fff; */
+  /* --quick-active-background: #ffd84a; --menu-button-size: 44px; --menu-button-background: #ffd84a; --menu-button-filter: none; */
+  /* --menu-item-align: left; --menu-mark-radius: 50%; --menu-mark-rotate: 0deg; --menu-mark-rest-opacity: 1; */
+  /* --place-padding: 6px 16px; --place-background: #22305a; --place-radius: 999px; --context-text: #fffaf0; --context-shadow: none; */
+
+  /* 装饰层：--<槽>-layer 设为 "" 才会出现 */
+  /* --dialogue-layer: ""; --dialogue-texture: url(paper.webp); --dialogue-frame: url(frame.svg) 24 / 24px / 6px round; --dialogue-outset: 6px; */
+  /* --nameplate-layer: ""; --nameplate-texture: url(plate.svg) center / 100% 100% no-repeat; */
+  /* --document-layer: ""; --toolbar-layer: ""; --chapter-layer: ""; --scene-layer: ""; --portrait-layer: ""; --title-layer: ""; */
+
+  /* 点击继续图标 */
+  /* --continue-size: 14px; --continue-rotate: 0deg; --continue-background: url(star.svg) center / contain no-repeat; --continue-dot: #ffd84a; */
+
+  /* 头像（窄屏与宽屏侧位默认无框） */
+  /* --narrow-portrait-radius: 50%; --narrow-portrait-shadow: 4px 4px 0 #22305a; */
+
+  /* 窗口与工具栏 */
+  /* --window-texture: url(paper.webp); --window-frame: url(frame.svg) 24 / 24px round; --toolbar-button-border: 1px solid #ffffff33; --toolbar-button-radius: 0; */
+}
+
+@media (max-width: 600px) {
+  :root[data-theme="my-theme"] {
+    /* --dialogue-padding: 22px 22px 18px; --dialogue-box-inset: 10px; */
+  }
+}

@@ -1,0 +1,19 @@
+@vn 0.10
+@book guest_demo title="街角书店"
+@character lin label="林舟" color="#79b9ae"
+@chapter ch01 title="第一章 午后"
+@scene b0001_shop
+@source p000001
+林舟推开了书店的门。
+@source p000002
+[lin] 请问，有旧地图吗？
+@source p000003
+[guest|店员] 在靠窗的书架上。
+@source p000004
+[guest|门外的路人] 下雨了！
+@source p000005
+{{lin|林舟}}回头看了一眼街道。
+// @vn-dossiers-begin
+// @dossier 2
+// @intro lin summary="在书店寻找旧地图的客人。"
+// @vn-dossiers-end

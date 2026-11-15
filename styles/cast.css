@@ -1,0 +1,1113 @@
+.character-hover {
+  position: fixed;
+  z-index: 30;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(310px,calc(100vw - 24px));
+  max-height: min(360px,calc(100dvh - 24px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px 17px;
+  border: 1px solid color-mix(in srgb,var(--person-color,var(--gold)) 30%,var(--line));
+  border-radius: 13px;
+  background: var(--bg);
+  box-shadow: 0 12px 36px rgb(var(--shadow-rgb) / 0.4666666666666667);
+  color: var(--text);
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: default;
+}
+
+.character-hover[hidden] {
+  display: none;
+}
+
+.character-hover strong {
+  display: block;
+  color: var(--person-color,var(--gold));
+  font: 14px var(--reading-font);
+  line-height: 1.5;
+}
+
+.character-hover p {
+  font: 13px/1.8 var(--reading-font);
+  margin: 7px 0 0;
+  white-space: pre-wrap;
+}
+
+#speaker,.character-mention,.annotation-mention,.term-mention {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  background: none;
+  border: 0;
+  border-radius: 2px;
+  padding: 0;
+  vertical-align: baseline;
+}
+
+/* The nameplate: plain coloured text by default. A theme may give it a fill (mixed from the person's colour by
+ * --nameplate-character-fill), a fixed text colour, a border, a shadow and a tilt. */
+#speaker {
+  position: relative;
+  padding: var(--nameplate-padding);
+  translate: var(--nameplate-shift);
+  rotate: var(--nameplate-rotate);
+  font-weight: 600;
+  font-size: var(--nameplate-font-size);
+  letter-spacing: .12em;
+  color: var(--nameplate-text, var(--character-color,var(--gold)));
+  background-color: color-mix(in srgb, var(--character-color,var(--gold)) var(--nameplate-character-fill), var(--nameplate-fill));
+  border: var(--nameplate-border);
+  border-radius: var(--nameplate-radius);
+  box-shadow: var(--nameplate-shadow);
+  text-shadow: var(--nameplate-text-shadow);
+  text-align: left;
+}
+
+/* The name mark: by default a short rule under the name; a theme may move and reshape it into a dot, a tail… */
+#speaker:not(:empty)::after {
+  content: "";
+  position: absolute;
+  inset: var(--name-mark-inset);
+  width: var(--name-rule-width);
+  height: var(--name-mark-height);
+  transform: var(--name-mark-transform);
+  border: var(--name-mark-border);
+  border-radius: var(--name-mark-radius);
+  background: var(--name-mark-background, var(--character-color,var(--gold)));
+  box-shadow: var(--name-mark-shadow);
+  opacity: var(--name-mark-opacity);
+  pointer-events: none;
+}
+
+#speaker:disabled {
+  opacity: 1;
+  cursor: default;
+  text-decoration: none;
+}
+
+.character-mention[role="button"] {
+  font-weight: 600;
+  display: inline;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: .2em;
+}
+
+.character-mention[role="button"]:hover,#speaker:enabled:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: .2em;
+}
+
+/* Notes and world terms stay quiet until pointed at: a faint line that darkens on hover. */
+.annotation-mention,
+.term-mention {
+  display: inline;
+  font-weight: inherit;
+  text-decoration: underline dashed;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  text-underline-offset: .22em;
+  cursor: help;
+}
+
+.term-mention {
+  text-decoration-style: dotted;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: .28em;
+}
+
+:is(.annotation-mention,.term-mention):is(:hover,:focus-visible) {
+  text-decoration-color: currentColor;
+}
+
+.annotation-hover {
+  max-width: min(380px,calc(100vw - 24px));
+}
+
+.annotation-hover p {
+  font-size: 12px;
+}
+
+/* Cast covers the whole stage: no window, the scene stays behind a blurred scrim (surfaces.css).
+   The reading layer underneath steps aside while it is open. */
+
+body:is(.cast-open,.stage-panel-open) :is(header,.reader-top,.reader-bottom,#scene-intro,#context,#reading-stack,#character-notice) {
+  visibility: hidden;
+}
+
+#cast-dialog {
+  --cast-gutter: max(40px,calc((100% - 1400px) / 2));
+  font-family: var(--reading-font);
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+#cast-dialog:not([open]) {
+  display: none;
+}
+
+.cast-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-shrink: 0;
+  min-height: 52px;
+  padding: 26px var(--cast-gutter) 18px;
+}
+
+.cast-toolbar h2 {
+  font: 26px var(--title-font);
+  letter-spacing: .32em;
+  font-weight: 400;
+  margin: 0;
+}
+
+.cast-toolbar button {
+  border: 0;
+  background: none;
+  font-size: 15px;
+  letter-spacing: .08em;
+  padding: 8px 0;
+}
+
+#cast-back {
+  font-size: 15px;
+}
+
+#cast-close {
+  margin-left: auto;
+  font-size: 34px;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+#cast-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 6px var(--cast-gutter) 48px;
+}
+
+/* Like the standing portraits, a profile figure runs down past the bottom edge instead of showing its cut. */
+#cast-body:has(.character-profile) {
+  padding-bottom: 0;
+}
+
+/* The list: a lineup of tall figure cards, grouped under quiet ruled headings. */
+
+.cast-group+.cast-group {
+  margin-top: 40px;
+}
+
+.cast-group-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font: 17px var(--title-font);
+  letter-spacing: .2em;
+  margin: 0 0 18px;
+  overflow-wrap: anywhere;
+}
+
+.cast-group-title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.cast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(200px,1fr));
+  gap: 30px 22px;
+}
+
+.cast-person {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  text-align: center;
+  color: inherit;
+}
+
+.cast-figure {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: clamp(220px,36dvh,340px);
+  overflow: hidden;
+  border-bottom: 1px solid;
+  border-radius: 10px 10px 0 0;
+  transition: background-color .2s;
+}
+
+.cast-figure>.avatar-frame,.character-picture>.avatar-frame {
+  --figure-align: bottom;
+}
+
+.cast-figure>.avatar-frame {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  transition: transform .25s ease;
+}
+
+.cast-figure>.avatar-frame:not(.standing-frame) {
+  height: auto;
+  width: min(78%,170px);
+  margin-bottom: 22px;
+}
+
+.cast-person:is(:hover,:focus-visible) .cast-figure>.avatar-frame {
+  transform: translateY(-5px);
+}
+
+.cast-initial {
+  margin-bottom: 34px;
+  font: 60px var(--title-font);
+  line-height: 1;
+}
+
+.cast-person-copy {
+  display: block;
+  min-width: 0;
+  padding: 14px 6px 0;
+}
+
+.cast-person-copy strong {
+  display: block;
+  font: 600 20px/1.4 var(--reading-font);
+  letter-spacing: .04em;
+  color: var(--person-color);
+  overflow-wrap: anywhere;
+}
+
+.cast-person-copy>span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  text-wrap: pretty;
+  font-size: 14px;
+  line-height: 1.7;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+
+.cast-empty {
+  font-size: 16px;
+  padding: 24px 0;
+}
+
+/* A profile: the figure stands full height on the left, the dossier reads on the right. */
+
+.character-profile {
+  display: grid;
+  grid-template-columns: minmax(260px,.85fr) minmax(0,1.3fr);
+  gap: clamp(32px,5vw,84px);
+  align-items: start;
+}
+
+.character-portrait {
+  position: sticky;
+  top: 0;
+  display: flex;
+  min-width: 0;
+}
+
+.character-picture {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: calc(100dvh - 102px);
+  min-height: 260px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: radial-gradient(ellipse 60% 22% at 50% 100%,color-mix(in srgb,var(--person-color) 20%,transparent),transparent 75%);
+}
+
+.character-picture>.avatar-frame {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+}
+
+.character-picture>.avatar-frame:not(.standing-frame) {
+  height: auto;
+  width: min(100%,320px);
+  align-self: center;
+}
+
+/* No picture: the name's first character in a small box level with the name instead of an empty column. */
+.character-picture:not(:has(.avatar-frame)) {
+  align-items: center;
+  width: min(100%,220px);
+  height: 260px;
+  min-height: 0;
+  margin: clamp(8px,7dvh,72px) auto 0;
+  border-radius: 12px;
+  background: none;
+}
+
+.character-information {
+  min-width: 0;
+  max-width: 760px;
+  padding: clamp(8px,7dvh,72px) 0 48px;
+}
+
+.character-name {
+  position: relative;
+  font: normal clamp(34px,3.8vw,52px)/1.25 var(--reading-font);
+  letter-spacing: .06em;
+  margin: 0 0 26px;
+  padding-bottom: 18px;
+  color: var(--person-color);
+  overflow-wrap: anywhere;
+}
+
+.character-name::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 44px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--person-color);
+  opacity: .85;
+}
+
+.character-full-name {
+  font-size: 15px;
+  letter-spacing: .04em;
+  margin: -12px 0 18px;
+}
+
+.character-summary {
+  font-size: 18px;
+  line-height: 1.9;
+  margin: 0 0 30px;
+  overflow-wrap: anywhere;
+}
+
+.character-section {
+  margin: 0 0 28px;
+}
+
+.character-section-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font: 15px var(--title-font);
+  letter-spacing: .24em;
+  margin: 0 0 10px;
+  overflow-wrap: anywhere;
+}
+
+.character-section-title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.character-entries {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.85;
+}
+
+.character-entries li {
+  padding: 6px 0 6px 20px;
+  position: relative;
+  overflow-wrap: anywhere;
+}
+
+.character-entries li::before {
+  content: '·';
+  position: absolute;
+  left: 2px;
+  color: var(--person-color);
+}
+
+/* A relation starts with the other person as a tag, in the dialogue nameplate's typeface. */
+.character-entries li.has-relation {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding-left: 0;
+}
+
+.character-entries li.has-relation::before {
+  content: none;
+}
+
+.character-relation-link {
+  flex: 0 1 auto;
+  max-width: 45%;
+  font: 600 14px/1.6 var(--ui-font);
+  letter-spacing: .1em;
+  padding: 3px 12px;
+  border: 1px solid;
+  border-radius: 6px;
+  text-shadow: none;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition: background-color .15s;
+}
+
+.character-relation-link+span {
+  flex: 1;
+  min-width: 0;
+}
+
+.character-appearance {
+  margin: 10px 0 0;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  font-size: 15px;
+}
+
+.character-appearance summary {
+  cursor: pointer;
+  letter-spacing: .05em;
+}
+
+.character-appearance p {
+  line-height: 1.9;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media(max-width:600px) {
+  #cast-dialog {
+    --cast-gutter: 16px;
+  }
+  .cast-toolbar {
+    gap: 14px;
+    min-height: 44px;
+    padding-top: 14px;
+    padding-bottom: 10px;
+  }
+  .cast-toolbar h2 {
+    font-size: 21px;
+    letter-spacing: .24em;
+  }
+  #cast-close {
+    font-size: 30px;
+  }
+  #cast-body {
+    padding-bottom: 32px;
+  }
+  .cast-group+.cast-group {
+    margin-top: 30px;
+  }
+  .cast-group-title {
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+  .cast-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 22px 12px;
+  }
+  .cast-figure {
+    height: clamp(180px,30dvh,230px);
+  }
+  .cast-initial {
+    margin-bottom: 26px;
+    font-size: 46px;
+  }
+  .cast-person-copy {
+    padding: 10px 2px 0;
+  }
+  .cast-person-copy strong {
+    font-size: 17px;
+  }
+  .cast-person-copy>span {
+    font-size: 13px;
+    line-height: 1.65;
+  }
+  .character-profile {
+    grid-template-columns: minmax(0,1fr);
+    gap: 18px;
+  }
+  .character-portrait {
+    position: static;
+  }
+  #cast-body:has(.character-profile) {
+    padding-bottom: 32px;
+  }
+  .character-picture {
+    height: min(46dvh,420px);
+    min-height: 200px;
+    border-bottom: 1px solid color-mix(in srgb,var(--person-color) 45%,transparent);
+  }
+  .character-picture:not(:has(.avatar-frame)) {
+    width: 150px;
+    height: 180px;
+    margin-top: 0;
+  }
+  .character-information {
+    padding: 0;
+  }
+  .character-name {
+    font-size: 30px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+  }
+  .character-summary {
+    font-size: 16px;
+    margin-bottom: 24px;
+  }
+  .character-entries {
+    font-size: 15px;
+  }
+  .character-entries li.has-relation {
+    gap: 10px;
+  }
+  .character-relation-link {
+    font-size: 13px;
+    padding: 2px 9px;
+  }
+}
+
+/* Terms and appendix cover the stage like the gallery: entries on the left, the chosen one on the right. Narrow screens
+ * stack them (terms: the chosen term above the list) or show the list and open a piece over it (appendix). */
+
+.reference-panel {
+  --reference-gutter: max(40px, calc((100% - 1400px) / 2));
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--reading-font);
+}
+
+.reference-panel:not([open]) {
+  display: none;
+}
+
+.reference-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-shrink: 0;
+  min-height: 52px;
+  padding: 26px var(--reference-gutter) 18px;
+}
+
+.reference-toolbar h2 {
+  margin: 0;
+  font: 400 26px var(--title-font);
+  letter-spacing: .32em;
+}
+
+.reference-count {
+  font: 13px var(--ui-font);
+  letter-spacing: .08em;
+}
+
+.reference-close {
+  margin-left: auto;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.reference-back {
+  display: none;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  font: 15px var(--reading-font);
+  letter-spacing: .08em;
+}
+
+.reference-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.reference-list {
+  display: flex;
+  flex-direction: column;
+  width: 260px;
+  flex-shrink: 0;
+  min-height: 0;
+  padding: 6px 0 0 var(--reference-gutter);
+  box-sizing: content-box;
+}
+
+.reference-filter {
+  margin: 0 0 12px;
+  padding: 9px 12px;
+  border-radius: 6px;
+  font: 14px var(--ui-font);
+}
+
+.reference-entries {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 40px;
+  scrollbar-width: thin;
+}
+
+.reference-entry {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  text-align: left;
+  font: 16px var(--reading-font);
+  letter-spacing: .08em;
+}
+
+.reference-entry-title, .reference-entry small {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.reference-entry small {
+  margin-top: 3px;
+  font: 12px var(--ui-font);
+  letter-spacing: .02em;
+}
+
+.reference-empty {
+  padding: 10px 14px;
+  font-size: 15px;
+}
+
+.reference-detail {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px var(--reference-gutter) 64px 56px;
+  scrollbar-width: thin;
+}
+
+.reference-title {
+  position: relative;
+  margin: 4px 0 30px;
+  font: 600 clamp(30px, 3.4vw, 44px) var(--reading-font);
+  letter-spacing: .06em;
+  overflow-wrap: anywhere;
+}
+
+.reference-title::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -14px;
+  width: 34px;
+  height: 2px;
+  opacity: .85;
+}
+
+.reference-lead {
+  max-width: 760px;
+  margin: 0 0 10px;
+  font-size: 19px;
+  line-height: 2;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+
+.reference-meta {
+  margin: 18px 0 0;
+  font: 13px var(--ui-font);
+  letter-spacing: .06em;
+}
+
+.reference-article {
+  max-width: 760px;
+}
+
+.reference-article p {
+  margin: 0 0 1.1em;
+  font-size: 18px;
+  line-height: 2;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+@media (max-width: 600px) {
+  .reference-panel {
+    --reference-gutter: 16px;
+  }
+  .reference-toolbar {
+    gap: 14px;
+    padding: 18px var(--reference-gutter) 12px;
+  }
+  .reference-toolbar h2 {
+    font-size: 22px;
+    letter-spacing: .24em;
+  }
+  .reference-count {
+    display: none;
+  }
+  .reference-body {
+    flex-direction: column;
+  }
+  .reference-list {
+    width: auto;
+    padding: 0 var(--reference-gutter);
+  }
+  .reference-detail {
+    padding: 4px var(--reference-gutter) 24px;
+  }
+  .reference-title {
+    margin-bottom: 26px;
+    font-size: 28px;
+  }
+  .reference-lead {
+    font-size: 17px;
+    line-height: 1.9;
+  }
+  .reference-article p {
+    font-size: 16px;
+  }
+  /* Stack: the chosen entry on top, the list below, each scrolling on its own. */
+  .reference-panel[data-narrow="stack"] .reference-detail {
+    order: 1;
+    flex: 0 0 auto;
+    max-height: 46%;
+  }
+  .reference-panel[data-narrow="stack"] .reference-list {
+    order: 2;
+    flex: 1;
+    padding-top: 14px;
+  }
+  .reference-panel[data-narrow="stack"] .reference-entries {
+    padding-bottom: 24px;
+  }
+  /* Drill: the list first; a chosen piece fills the panel with a way back. */
+  .reference-panel[data-narrow="drill"] .reference-detail {
+    display: none;
+  }
+  .reference-panel[data-narrow="drill"].is-reading .reference-list {
+    display: none;
+  }
+  .reference-panel[data-narrow="drill"].is-reading .reference-detail {
+    display: block;
+    flex: 1;
+  }
+  .reference-panel[data-narrow="drill"].is-reading .reference-back {
+    display: inline-flex;
+  }
+  .reference-panel[data-narrow="drill"].is-reading .reference-toolbar h2 {
+    display: none;
+  }
+  .reference-panel[data-narrow="drill"] .reference-entry {
+    padding: 14px 4px;
+    border-left: 0;
+  }
+  .reference-panel[data-narrow="drill"] .reference-entry-title {
+    white-space: normal;
+  }
+}
+
+.avatar-frame {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1;
+  border-radius: 0;
+  flex-shrink: 0;
+}
+
+.avatar-frame img {
+  position: absolute;
+  max-width: none;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+.avatar-frame.standing-frame {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.avatar-frame.standing-frame img {
+  position: static;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center var(--figure-align,center);
+}
+
+#reader.document-mode .character-mention {
+  font-weight: inherit;
+}
+
+/* Reading settings cover the stage like the other panels: the settings on the left, a sample of the current scene on
+ * the right whose dialogue band follows the choices; narrow screens put a short sample strip above the settings. */
+
+.settings-panel {
+  --settings-gutter: max(40px, calc((100% - 1400px) / 2));
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--reading-font);
+}
+
+.settings-panel:not([open]) {
+  display: none;
+}
+
+.settings-toolbar {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-height: 52px;
+  padding: 26px var(--settings-gutter) 18px;
+}
+
+.settings-toolbar h2 {
+  margin: 0;
+  font: 400 26px var(--title-font);
+  letter-spacing: .32em;
+}
+
+.settings-toolbar button {
+  margin-left: auto;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.settings-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 48px;
+  padding: 0 var(--settings-gutter) 32px;
+}
+
+.settings-list {
+  width: 480px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  /* The right padding keeps the rows clear of the scroll mark, which sits inside the list's right edge. */
+  padding: 4px 18px 24px 0;
+}
+
+.setting-group + .setting-group {
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+.setting-row {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 16px;
+  min-height: 58px;
+}
+
+.setting-row.is-wide {
+  grid-template-columns: 112px minmax(0, 1fr);
+}
+
+/* A label longer than its column (English, Japanese) wraps onto a second line, Japanese between phrases. */
+.setting-row > span:first-child {
+  font-size: 16px;
+  line-height: 1.3;
+  letter-spacing: .12em;
+  word-break: auto-phrase;
+}
+
+:root[lang="en"] .setting-row > span:first-child {
+  letter-spacing: .02em;
+}
+
+.setting-row output {
+  font: 13px var(--ui-font);
+  text-align: right;
+  letter-spacing: .02em;
+}
+
+.setting-row input[type="range"] {
+  width: 100%;
+  margin: 0;
+}
+
+.setting-row select {
+  width: 100%;
+  font: 14px var(--ui-font);
+}
+
+.setting-row.is-fixed input {
+  opacity: .3;
+}
+
+/* Two choices side by side; the chosen one is lit. */
+.setting-choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 3px;
+  border-radius: 8px;
+}
+
+.setting-choice button {
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  font: 14px var(--ui-font);
+  letter-spacing: .06em;
+  text-shadow: none;
+}
+
+.settings-sample {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  background-position: center;
+  background-size: cover;
+  text-shadow: none;
+}
+
+.settings-sample-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 22px 28px 26px;
+}
+
+.settings-sample-band::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: var(--dialogue-fade);
+}
+
+#settings-sample-text {
+  min-height: calc(var(--dialogue-lines) * var(--reading-line-height) * 1em);
+  margin: 0;
+  font: var(--font-size) / var(--reading-line-height) var(--reading-font);
+  letter-spacing: var(--reading-tracking);
+}
+
+#settings-sample-text span {
+  display: block;
+}
+
+@media (max-width: 600px) {
+  .settings-panel {
+    --settings-gutter: 16px;
+  }
+  .settings-toolbar {
+    padding: 18px var(--settings-gutter) 12px;
+  }
+  .settings-toolbar h2 {
+    font-size: 22px;
+    letter-spacing: .24em;
+  }
+  .settings-body {
+    flex-direction: column;
+    gap: 14px;
+    padding-bottom: 0;
+  }
+  .settings-sample {
+    order: -1;
+    flex: 0 0 auto;
+    height: 34%;
+  }
+  .settings-sample-band {
+    padding: 12px 18px 14px;
+  }
+  #settings-sample-text {
+    min-height: 0;
+    font-size: calc(var(--font-size) - 2px);
+  }
+  .settings-list {
+    width: auto;
+    flex: 1;
+  }
+  .setting-row {
+    grid-template-columns: 98px minmax(0, 1fr) 44px;
+    gap: 10px;
+    min-height: 54px;
+  }
+  .setting-row.is-wide {
+    grid-template-columns: 98px minmax(0, 1fr);
+  }
+  .setting-row > span:first-child {
+    font-size: 15px;
+    letter-spacing: .02em;
+  }
+}

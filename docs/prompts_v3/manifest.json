@@ -1,0 +1,781 @@
+{
+  "schema": "vn-prompt-library-1",
+  "modules": [
+    {
+      "id": "G1",
+      "path": "register/task.md",
+      "fragments": [
+        {
+          "id": "register.task",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "G2",
+      "path": "register/chapters.md",
+      "fragments": [
+        {
+          "id": "register.chapters",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "G3",
+      "path": "register/entities.md",
+      "fragments": [
+        {
+          "id": "register.entities",
+          "slots": {}
+        },
+        {
+          "id": "register.additions",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "G4",
+      "path": "register/passages.md",
+      "fragments": [
+        {
+          "id": "register.disclosure",
+          "slots": {}
+        },
+        {
+          "id": "register.passages",
+          "slots": {}
+        },
+        {
+          "id": "register.annotations",
+          "slots": {}
+        },
+        {
+          "id": "register.typos",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "G5",
+      "path": "register/visual.md",
+      "fragments": [
+        {
+          "id": "register.visual",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "G6",
+      "path": "register/output.md",
+      "fragments": [
+        {
+          "id": "register.output",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "B1",
+      "path": "body/task-format.md",
+      "fragments": [
+        {
+          "id": "body.task",
+          "slots": {}
+        },
+        {
+          "id": "body.example",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "B2",
+      "path": "body/blocks-reading.md",
+      "fragments": [
+        {
+          "id": "body.blocks",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "B3",
+      "path": "body/characters-reveal.md",
+      "fragments": [
+        {
+          "id": "body.entities",
+          "slots": {}
+        },
+        {
+          "id": "body.states",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "B4",
+      "path": "body/sources-notes-transitions.md",
+      "fragments": [
+        {
+          "id": "body.annotations",
+          "slots": {}
+        },
+        {
+          "id": "body.transitions",
+          "slots": {}
+        },
+        {
+          "id": "body.sources",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "B5",
+      "path": "body/style.md",
+      "fragments": [
+        {
+          "id": "style.base",
+          "slots": {}
+        },
+        {
+          "id": "style.tags",
+          "slots": {}
+        },
+        {
+          "id": "style.no-tags",
+          "slots": {}
+        },
+        {
+          "id": "style.thoughts",
+          "slots": {}
+        },
+        {
+          "id": "style.original",
+          "slots": {}
+        },
+        {
+          "id": "style.base.en",
+          "slots": {}
+        },
+        {
+          "id": "style.tags.en",
+          "slots": {}
+        },
+        {
+          "id": "style.no-tags.en",
+          "slots": {}
+        },
+        {
+          "id": "style.thoughts.en",
+          "slots": {}
+        },
+        {
+          "id": "style.original.en",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "B6",
+      "path": "body/continuity-inheritance.md",
+      "fragments": [
+        {
+          "id": "body.continuity",
+          "slots": {}
+        },
+        {
+          "id": "body.entity-state",
+          "slots": {
+            "kind": "e.kind",
+            "id": "e.id",
+            "label": "quote(e.label)",
+            "color": "e.color ? ` color=${quote(e.color)}` : ''",
+            "aliases": "JSON.stringify([...(aliases.get(e.id)||[])])",
+            "state": "JSON.stringify(last.revealed.get(e.id) || null)"
+          }
+        },
+        {
+          "id": "body.empty-registry",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "B8",
+      "path": "body/dialogue-expressions.md",
+      "fragments": [
+        {
+          "id": "body.dialogue",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "B9",
+      "path": "body/shorthand.md",
+      "fragments": [
+        {
+          "id": "body.shorthand",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "D1",
+      "path": "dossier/task-style.md",
+      "fragments": [
+        {
+          "id": "dossier10.task",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "D2",
+      "path": "dossier/simple.md",
+      "fragments": [
+        {
+          "id": "dossier10.simple",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "D3",
+      "path": "dossier/detailed.md",
+      "fragments": [
+        {
+          "id": "dossier10.detailed",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "D4",
+      "path": "dossier/disclosure.md",
+      "fragments": [
+        {
+          "id": "dossier10.disclosure",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "D5",
+      "path": "dossier/output.md",
+      "fragments": [
+        {
+          "id": "dossier10.syntax",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "D7",
+      "path": "dossier/terms.md",
+      "fragments": [
+        {
+          "id": "dossier10.terms",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "V10",
+      "path": "director/request.md",
+      "fragments": [
+        {
+          "id": "director.converted-input",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "R1",
+      "path": "review/checks.md",
+      "fragments": [
+        {
+          "id": "review.task",
+          "slots": {}
+        },
+        {
+          "id": "review.checks",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "path": "review/patch-output.md",
+      "fragments": [
+        {
+          "id": "review.output",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "path": "review/request.md",
+      "fragments": [
+        {
+          "id": "review.inputs",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "C1",
+      "path": "common/input-materials.md",
+      "fragments": [
+        {
+          "id": "source.request",
+          "slots": {
+            "context": "numberedText(context) || '无'",
+            "firstSource": "batch[0].id",
+            "lastSource": "batch.at(-1).id",
+            "sourceCount": "batch.length",
+            "source": "numberedText(batch)"
+          }
+        },
+        {
+          "id": "source.annotations",
+          "slots": {
+            "source": "extra.map(p=>`[${p.id}]\\n${p.text}`).join('\\n\\n')"
+          }
+        }
+      ]
+    },
+    {
+      "id": "C2",
+      "path": "common/repair.md",
+      "fragments": [
+        {
+          "id": "repair.annotation",
+          "slots": {
+            "sourceId": "d.id"
+          }
+        },
+        {
+          "id": "repair.source-id",
+          "slots": {
+            "actual": "id",
+            "expected": "matches[0]"
+          }
+        },
+        {
+          "id": "repair.location",
+          "slots": {
+            "firstId": "a.id",
+            "firstLabel": "a.label",
+            "secondId": "b.id",
+            "secondLabel": "b.label"
+          }
+        },
+        {
+          "id": "repair.entity-conflict",
+          "slots": {
+            "id": "e.id"
+          }
+        },
+        {
+          "id": "repair.dossier-missing",
+          "slots": {
+            "characters": "missing.map(c=>`${c.id}（${c.label}）`).join('、')"
+          }
+        },
+        {
+          "id": "director.repair",
+          "slots": {
+            "draft": "r.director",
+            "errors": "r.directorError"
+          }
+        }
+      ]
+    },
+    {
+      "id": "C3",
+      "path": "common/language.md",
+      "fragments": [
+        {
+          "id": "lang.output",
+          "slots": {}
+        },
+        {
+          "id": "lang.output.en",
+          "slots": {}
+        },
+        {
+          "id": "lang.output.ja",
+          "slots": {}
+        },
+        {
+          "id": "lang.output.zh-Hant",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "V11",
+      "path": "director/composition.md",
+      "fragments": [
+        {
+          "id": "director11.task",
+          "slots": {}
+        },
+        {
+          "id": "director11.characters",
+          "slots": {}
+        },
+        {
+          "id": "director11.style-model",
+          "slots": {}
+        },
+        {
+          "id": "director11.style-sides",
+          "slots": {
+            "sides": "各方画风来源"
+          }
+        },
+        {
+          "id": "director11.subject-format",
+          "slots": {
+            "format": "用户对对象描述的写法要求"
+          }
+        },
+        {
+          "id": "director11.style-fixed",
+          "slots": {}
+        },
+        {
+          "id": "director11.background",
+          "slots": {}
+        },
+        {
+          "id": "director11.request",
+          "slots": {
+            "bookTitle": "Program supplied bookTitle",
+            "chapterId": "Program supplied chapterId",
+            "styleMode": "Program supplied styleMode",
+            "styles": "Program supplied styles",
+            "needs": "Program supplied needs",
+            "blocks": "Program supplied blocks",
+            "entities": "Program supplied entities",
+            "details": "Program supplied details",
+            "characters": "Program supplied characters",
+            "designs": "Program supplied designs",
+            "backgrounds": "Program supplied backgrounds"
+          }
+        },
+        {
+          "id": "director11.output",
+          "slots": {
+            "schema": "Program supplied schema",
+            "limit": "Book image limit sentence or empty"
+          }
+        },
+        {
+          "id": "director11.ambient",
+          "slots": {}
+        },
+        {
+          "id": "director11.locations",
+          "slots": {}
+        },
+        {
+          "id": "director11.cg",
+          "slots": {}
+        },
+        {
+          "id": "director11.cut-in",
+          "slots": {}
+        },
+        {
+          "id": "director11.image-limit",
+          "slots": {
+            "limit": "全书图片总数上限",
+            "used": "已登记图片数",
+            "left": "剩余"
+          }
+        },
+        {
+          "id": "director11.ambient-input",
+          "slots": {
+            "ambients": "已定义氛围图"
+          }
+        },
+        {
+          "id": "director11.cut-in-input",
+          "slots": {
+            "cutIns": "Global image definitions"
+          }
+        },
+        {
+          "id": "director11.variants",
+          "slots": {}
+        },
+        {
+          "id": "director11.variants-input",
+          "slots": {
+            "variants": "已定义差分",
+            "states": "本章开始时的持续状态",
+            "main": "主要人物"
+          }
+        },
+        {
+          "id": "director11.staging",
+          "slots": {}
+        },
+        {
+          "id": "director11.design-conflicts",
+          "slots": {}
+        },
+        {
+          "id": "director11.staging-input",
+          "slots": {
+            "offstage": "本章开始时持续不上场的人物"
+          }
+        }
+      ]
+    },
+    {
+      "id": "V12",
+      "path": "director/design.md",
+      "fragments": [
+        {
+          "id": "design.task",
+          "slots": {}
+        },
+        {
+          "id": "design.request",
+          "slots": {
+            "bookTitle": "JSON.stringify(book.title)",
+            "chapterCount": "chapter count",
+            "styles": "JSON.stringify(fixedStyles)",
+            "needs": "JSON.stringify(needs)",
+            "entities": "JSON.stringify(entities)"
+          }
+        },
+        {
+          "id": "design.output",
+          "slots": {
+            "artStyles": "fixedStyles?'':renderPrompt('design.output-styles')"
+          }
+        },
+        {
+          "id": "design.ambients",
+          "slots": {}
+        },
+        {
+          "id": "design.output-ambients",
+          "slots": {}
+        },
+        {
+          "id": "design.title-card",
+          "slots": {}
+        },
+        {
+          "id": "design.output-title-card",
+          "slots": {}
+        },
+        {
+          "id": "design.variants",
+          "slots": {}
+        },
+        {
+          "id": "design.output-variants",
+          "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "X4",
+      "path": "image/tasks.md",
+      "fragments": [
+        {
+          "id": "image11.transparent",
+          "slots": {}
+        },
+        {
+          "id": "image11.cutout",
+          "slots": {}
+        },
+        {
+          "id": "image11.standing",
+          "slots": {
+            "object": "Program supplied object",
+            "style": "Program supplied style",
+            "background": "Program supplied background"
+          }
+        },
+        {
+          "id": "image11.standing-framing",
+          "slots": {}
+        },
+        {
+          "id": "image11.standing-framing-zh",
+          "slots": {}
+        },
+        {
+          "id": "image11.background",
+          "slots": {
+            "object": "Program supplied object",
+            "style": "Program supplied style"
+          }
+        },
+        {
+          "id": "image11.ambient",
+          "slots": {
+            "object": "Program supplied object",
+            "style": "Program supplied style"
+          }
+        },
+        {
+          "id": "image11.cg",
+          "slots": {
+            "object": "Program supplied object",
+            "style": "Program supplied style"
+          }
+        },
+        {
+          "id": "image11.title-card",
+          "slots": {
+            "object": "Program supplied object",
+            "style": "Character style"
+          }
+        },
+        {
+          "id": "image11.cut-in",
+          "slots": {
+            "object": "Object description",
+            "style": "Background style"
+          }
+        },
+        {
+          "id": "image11.variant-character",
+          "slots": {
+            "object": "Program supplied object",
+            "background": "Program supplied portrait background"
+          }
+        },
+        {
+          "id": "image11.variant-location",
+          "slots": {
+            "object": "Program supplied object"
+          }
+        },
+        {
+          "id": "image11.ref-character",
+          "slots": {}
+        },
+        {
+          "id": "image11.ref-cast",
+          "slots": {
+            "names": "Program supplied character names"
+          }
+        },
+        {
+          "id": "image11.cast",
+          "slots": {
+            "cast": "Program supplied lines: each main character's name, reference label and look"
+          }
+        },
+        {
+          "id": "image11.ref-scene",
+          "slots": {}
+        },
+        {
+          "id": "image11.ref-location",
+          "slots": {}
+        },
+        {
+          "id": "image11.ref-object",
+          "slots": {}
+        }
+      ]
+    }
+  ],
+  "recipes": {
+    "format": [
+      "body.task",
+      "body.entities",
+      "body.blocks",
+      "body.dialogue",
+      "body.states",
+      "body.annotations",
+      "body.transitions",
+      "body.continuity",
+      "body.sources",
+      "body.example"
+    ],
+    "format-shorthand": [
+      "body.task",
+      "body.entities",
+      "body.blocks",
+      "body.dialogue",
+      "body.states",
+      "body.annotations",
+      "body.transitions",
+      "body.continuity",
+      "body.sources",
+      "body.example",
+      "body.shorthand"
+    ],
+    "style": [
+      "lang.output",
+      "style.base",
+      "style.tags",
+      "style.thoughts"
+    ],
+    "style-no-tags": [
+      "lang.output",
+      "style.base",
+      "style.no-tags",
+      "style.thoughts"
+    ],
+    "style-original": [
+      "lang.output",
+      "style.original"
+    ],
+    "register": [
+      "lang.output",
+      "register.task",
+      "register.chapters",
+      "register.entities",
+      "register.disclosure",
+      "register.passages",
+      "register.annotations",
+      "register.typos",
+      "register.visual",
+      "register.additions",
+      "register.output"
+    ],
+    "dossier": [
+      "lang.output",
+      "dossier10.task",
+      "dossier10.disclosure",
+      "dossier10.syntax"
+    ],
+    "director": [
+      "director11.task"
+    ],
+    "background": [
+      "director11.background"
+    ],
+    "review": [
+      "lang.output",
+      "review.task",
+      "review.inputs",
+      "review.checks",
+      "review.output"
+    ],
+    "characters": [
+      "director11.characters"
+    ]
+  },
+  "composites": {}
+}

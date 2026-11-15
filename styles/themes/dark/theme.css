@@ -1,0 +1,21 @@
+/* Dark uses the default palette in tokens.css. Keep overrides scoped. */
+
+:root[data-theme="dark"] {
+  --color-scheme: dark;
+}
+
+/* The avatar stands on the name rule, which runs from the text's left edge to the name's end.
+ * The name row keeps its height, so a name on two lines grows upward and the rule stays under the avatar. */
+@media (max-width: 600px) {
+  :root[data-theme="dark"] {
+    --dialogue-avatar-size: 96px;
+    --narrow-portrait-left: 20px;
+    --narrow-portrait-top: calc(53px - var(--dialogue-avatar-size));
+    --narrow-name-left: calc(var(--dialogue-avatar-size) + 8px);
+    --narrow-name-mark-inset: auto 0 -6px calc(0px - var(--narrow-name-left));
+    --narrow-name-mark-width: auto;
+    --narrow-speaker-row-align: flex-end;
+    --narrow-speaker-row-height: 30px;
+    --narrow-speaker-row-lift: 5px;
+  }
+}

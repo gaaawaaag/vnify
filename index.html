@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>vnify. · 视觉小说书架</title>
+  <script src="src/reader/theme-registry.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Loaded as print and switched on load, so an unreachable Google Fonts never holds up the first paint. -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Noto+Serif+SC:wght@400;600&family=Noto+Sans+SC:wght@300&family=Noto+Serif+JP:wght@400;600&family=Noto+Sans+JP:wght@400&family=Noto+Serif+TC:wght@400;600&family=Noto+Sans+TC:wght@400&display=swap" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="styles/tokens.css">
+  <script type="module" src="src/ui/reading-appearance.js"></script>
+  <link rel="stylesheet" href="styles/style.css">
+  <link rel="stylesheet" href="styles/cast.css">
+  <link rel="stylesheet" href="styles/backgrounds.css">
+  <link rel="stylesheet" href="styles/surfaces.css">
+  <link rel="stylesheet" href="styles/theme-layers.css">
+  <script src="src/ui/theme.js"></script>
+</head>
+<body>
+  <svg width="0" height="0" class="icon-sprite" aria-hidden="true">
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.2"/><path d="M9.9 9.9l4.2 4.2M14.1 9.9l-4.2 4.2"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M10.5 12h10"/><rect x="3.2" y="8.7" width="6.6" height="6.6" transform="rotate(45 6.5 12)" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M2 4.5h6a4 4 0 0 1 4 4v12a3 3 0 0 0-3-3H2z"/><path d="M22 4.5h-6a4 4 0 0 0-4 4v12a3 3 0 0 1 3-3h7z"/></symbol>
+    <symbol id="i-language" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.2"/><path d="M2.8 12h18.4M12 2.8c2.6 2.6 3.8 5.7 3.8 9.2s-1.2 6.6-3.8 9.2c-2.6-2.6-3.8-5.7-3.8-9.2S9.4 5.4 12 2.8z"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="1.5"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2.8H7a2 2 0 0 0-2 2v14.4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7.8z"/><path d="M14 2.8v5h5"/><path d="M9 13h6M9 16.5h4"/></symbol><symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4.2l2 2.4H19a2 2 0 0 1 2 2v8.6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 10.5h18"/></symbol><symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></symbol>
+    <symbol id="i-wide" viewBox="0 0 24 24"><rect x="3" y="5" width="8" height="5.5"/><rect x="13" y="5" width="8" height="5.5"/><rect x="3" y="13.5" width="8" height="5.5"/><rect x="13" y="13.5" width="8" height="5.5"/></symbol>
+    <symbol id="i-tall" viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16"/><rect x="9.5" y="4" width="5" height="16"/><rect x="16" y="4" width="5" height="16"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></symbol>
+    <!-- Reading icons; a theme may replace any of them (registry `icons`, see docs/theme-guide.md). -->
+    <symbol id="i-hide" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><path d="M6 4a2 2 0 0 0-2 2v2h4"/><path d="M6 4h11a2 2 0 0 1 2 2v11"/><path d="M8 6v13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2h-8v2a2 2 0 0 1-2 2"/><path d="M11 9h5M11 12.5h5"/></symbol>
+    <symbol id="i-auto" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.6 16.4 12 7.6l3.4 8.8M9.9 13.3h4.2"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 18 18"><path d="M3 5h12M3 9h12M3 13h12"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><rect x="8.6" y="8.6" width="6.8" height="6.8" transform="rotate(45 12 12)"/></symbol>
+  </svg>
+  <header id="home-header"><a class="brand" href="#" id="home">vnify<span class="brand-dot">.</span></a><div class="header-actions" id="home-actions">
+    <div class="home-anchor"><button class="icon-button" id="home-language" aria-label="界面语言" data-tip="界面语言" aria-haspopup="menu" aria-expanded="false"><svg><use href="#i-language"/></svg></button>
+      <div id="home-language-menu" role="menu" hidden>
+        <button role="menuitemradio" data-lang="zh" aria-checked="true" translate="no" lang="zh-CN"><span class="menu-code">简</span>简体中文</button>
+        <button role="menuitemradio" data-lang="zh-Hant" aria-checked="false" translate="no" lang="zh-Hant"><span class="menu-code">繁</span>繁體中文</button>
+        <button role="menuitemradio" data-lang="en" aria-checked="false" translate="no" lang="en"><span class="menu-code">EN</span>English</button>
+        <button role="menuitemradio" data-lang="ja" aria-checked="false" translate="no" lang="ja"><span class="menu-code">日</span>日本語</button>
+      </div>
+    </div>
+    <div class="home-anchor"><button class="icon-button tip-end" id="home-background" aria-label="背景" data-tip="背景" aria-haspopup="menu" aria-expanded="false"><svg><use href="#i-image"/></svg></button>
+      <div id="home-background-menu" role="menu" hidden>
+        <button role="menuitemradio" data-background="upload" aria-checked="false"><svg><use href="#i-upload"/></svg>上传图片…</button>
+        <button role="menuitemradio" data-background="custom" aria-checked="false" hidden><svg><use href="#i-image"/></svg>上传的图片</button>
+        <button role="menuitemradio" data-background="recent" aria-checked="false"><svg><use href="#i-book"/></svg>最近阅读的封面</button>
+        <button role="menuitemradio" data-background="default" aria-checked="true"><svg><use href="#i-image"/></svg>默认照片</button>
+        <hr><label>亮度<input type="range" id="home-dim" min="30" max="100" step="5" value="100"></label>
+      </div>
+      <input type="file" id="home-background-file" accept="image/png,image/jpeg,image/webp" hidden>
+    </div>
+    <button class="icon-button tip-end" id="open-settings" aria-label="书架设置" data-tip="设置"><svg><use href="#i-gear"/></svg></button>
+  </div></header>
+  <main id="welcome">
+    <div id="home-backdrop" aria-hidden="true"><img id="home-photo" alt="" decoding="async"></div>
+    <section id="home-hero"><div class="home-column"><div id="home-resume" hidden></div></div><div class="home-fade" aria-hidden="true"></div></section>
+    <section id="home-sheet"><div class="home-column">
+      <section id="shelf" aria-labelledby="shelf-heading">
+        <div class="shelf-head"><h2 id="shelf-heading">书架</h2><span id="shelf-count" aria-hidden="true">00</span>
+          <div class="shelf-views" role="group" aria-label="书架视图">
+            <button class="icon-button" data-view="tall" aria-label="竖版封面" data-tip="竖版封面" aria-pressed="true"><svg><use href="#i-tall"/></svg></button>
+            <button class="icon-button" data-view="wide" aria-label="横版封面" data-tip="横版封面" aria-pressed="false"><svg><use href="#i-wide"/></svg></button>
+            <button class="icon-button" data-view="list" aria-label="列表" data-tip="列表" aria-pressed="false"><svg><use href="#i-list"/></svg></button>
+          </div>
+          <div class="shelf-actions"><button class="icon-button outline" id="sample" aria-label="试读示例" data-tip="试读示例"><svg><use href="#i-book"/></svg></button><button class="icon-button primary tip-end" id="welcome-import" aria-label="导入作品" data-tip="导入作品"><svg><use href="#i-plus"/></svg></button></div>
+        </div>
+        <div id="shelf-grid" role="list"></div>
+        <div id="shelf-list" role="list"></div>
+        <nav id="shelf-pager" aria-label="书架分页" hidden><button class="icon-button" id="shelf-prev" aria-label="上一页"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><span id="shelf-page" aria-live="polite"></span><button class="icon-button" id="shelf-next" aria-label="下一页"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></nav>
+      </section>
+      <div class="welcome-foot"><span>点击 · 空格推进 · ← 回退</span></div>
+    </div></section>
+  </main>
+  <main id="reader" hidden>
+    <div id="reader-background" aria-hidden="true"></div><div id="standing-portrait" aria-hidden="true"></div><div id="reader-scrim" aria-hidden="true"></div>
+    <div class="reader-top">
+      <div class="reader-title"><button id="open-contents" type="button" aria-expanded="false" aria-controls="chapter-list" title="章节"><span id="book-title"></span><span class="sub"><span id="chapter-title"></span><span id="position"></span></span><span class="progress-track" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0"><span id="progress"></span></span></button><nav id="chapter-list" aria-label="章节" hidden></nav></div>
+      <div class="reader-top-right" id="reader-actions">
+        <div class="place-row"><div id="context" hidden><span class="context-mark" aria-hidden="true">◇</span><span id="context-place"></span><span id="context-time"></span></div><button id="reader-menu" type="button" aria-label="菜单" aria-expanded="false" aria-controls="reader-menu-list"><svg aria-hidden="true"><use href="#i-menu"/></svg></button></div>
+        <span id="save-status" role="status"><span id="save-text"></span><svg viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="6.5"/><path class="save-ok" d="M6 9.2l2.1 2.1 4-4.3"/><path class="save-bad" d="M9 5.6v4M9 12.3v.1"/><path class="save-spin" d="M9 2.5a6.5 6.5 0 0 1 6.5 6.5"/></svg></span>
+        <nav id="reader-menu-list" aria-label="阅读菜单"><button id="open-cast" type="button">人物</button><button id="open-terms" type="button" hidden>词条</button><button id="open-backgrounds" type="button">图集</button><button id="open-extra" type="button" hidden>附录</button><span class="menu-rule" aria-hidden="true"></span><button id="reader-settings" type="button">设置</button><button id="reader-home" type="button">主页</button></nav>
+      </div>
+    </div>
+    <section id="stage" tabindex="0" aria-label="阅读区域，空格或右方向键推进">
+      <div id="scene-intro" hidden role="status"><span class="scene-mark" aria-hidden="true">◇</span><h2 id="scene-name"></h2><p id="scene-detail"></p></div>
+      <div id="chapter-intro" hidden role="status"><div class="chapter-page"><p id="chapter-kicker"></p><h2 id="chapter-name"></h2><span class="chapter-rule" aria-hidden="true"></span><p id="chapter-detail"></p></div></div>
+      <div id="separator-intro" hidden aria-hidden="true"></div>
+      <div id="cut-in-region" hidden aria-label="细节特写"><img id="cut-in-image" alt="细节特写"><div class="cut-in-controls"><button id="cut-in-open" type="button" aria-label="放大细节特写" title="放大"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M10 20H4v-6M20 4l-6.5 6.5M4 20l6.5-6.5"/></svg></button><button id="cut-in-collapse" type="button" aria-label="收起细节特写" title="收起"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button></div><button id="cut-in-expand" type="button" aria-label="展开细节特写" title="展开" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="1.5"/><circle cx="9" cy="10" r="1.6"/><path d="m20.5 16-4.5-4.5-8 7.5"/></svg></button></div>
+      <div id="reading-stack">
+      <div class="reading-card" id="card"><div id="reading-body"><div class="speaker-row" id="speaker-row"><button id="speaker" type="button"></button><span id="thought-label" hidden>心声</span><span id="memory" hidden>回忆</span></div><p id="text"></p><span id="advance-hint" aria-hidden="true"> <span class="continue-mark"><i class="continue-diamond"></i><i class="continue-ring"></i><i class="continue-path"></i><i class="continue-sat"><i></i></i></span></span></div><div id="reader-quick"><button id="hide-dialogue" type="button" aria-label="隐藏对话框" title="隐藏对话框（↓）"><svg aria-hidden="true"><use href="#i-hide"/></svg></button><button id="history" type="button" aria-label="历史" title="历史（H）"><svg aria-hidden="true"><use href="#i-history"/></svg></button><button id="auto" type="button" aria-pressed="false" aria-label="自动播放" title="自动播放（A）"><svg aria-hidden="true"><use href="#i-auto"/></svg></button></div><div id="document-actions" hidden><button id="document-next" type="button" aria-label="继续" title="继续"><svg aria-hidden="true"><use href="#i-next"/></svg></button></div></div>
+      <div id="character-notice" role="status" aria-live="polite" aria-atomic="true"><button id="character-notice-button" type="button" hidden></button></div>
+      </div>
+    </section>
+    <div class="reader-bottom"><div id="source-info" hidden></div></div>
+    <div id="backlog" hidden><div id="backlog-scroll"><div id="backlog-list" role="list" aria-label="阅读历史"></div></div><button id="backlog-close" type="button"><svg class="ui-icon icon-back" aria-hidden="true"><use href="#i-back"/></svg><span>返回</span></button></div>
+  </main>
+  <section id="title-screen" tabindex="-1" aria-label="标题画面" hidden><div id="title-screen-content"><div id="title-screen-image" aria-hidden="true"></div><div class="title-screen-text"><h1 id="title-screen-name"></h1><p id="title-screen-author" hidden></p><p id="title-screen-hint">点击开始<span class="continue-mark" aria-hidden="true"><i class="continue-diamond"></i><i class="continue-ring"></i></span></p></div></div></section>
+  <dialog id="shelf-settings-dialog"><div class="dialog-head"><h2>书架设置</h2><button data-close aria-label="关闭"><svg class="ui-icon icon-close" aria-hidden="true"><use href="#i-close"/></svg></button></div><label class="setting">每页行数<select id="shelf-rows"><option value="2">2 行</option><option value="3">3 行</option><option value="4">4 行</option><option value="6">6 行</option><option value="0">不分页</option></select></label><label class="check"><input type="checkbox" id="shelf-original-cover" checked>优先使用原书封面</label></dialog>
+  <dialog id="shelf-dialog"><div class="dialog-head"><h2 id="shelf-dialog-title"></h2><button data-close aria-label="关闭"><svg class="ui-icon icon-close" aria-hidden="true"><use href="#i-close"/></svg></button></div><p id="shelf-dialog-text"></p><div class="dialog-footer"><button data-close>取消</button><button class="primary" id="shelf-dialog-confirm"></button></div></dialog>
+  <dialog id="book-info-dialog"><form method="dialog" id="book-info-form"><div class="dialog-head"><h2>编辑作品信息</h2><button type="button" data-close aria-label="关闭"><svg class="ui-icon icon-close" aria-hidden="true"><use href="#i-close"/></svg></button></div><label class="setting">书名<input id="book-info-title" type="text" maxlength="200" required autocomplete="off"></label><label class="setting">作者<input id="book-info-author" type="text" maxlength="200" autocomplete="off"></label><p id="book-info-error" class="form-error" role="alert" hidden></p><div class="dialog-footer"><button type="button" data-close>取消</button><button type="submit" class="primary" id="book-info-save">保存</button></div></form></dialog>
+  <dialog id="import-dialog"><div class="dialog-head"><h2>导入作品</h2><button data-close aria-label="关闭"><svg class="ui-icon icon-close" aria-hidden="true"><use href="#i-close"/></svg></button></div><div class="import-picks"><label class="import-pick"><input id="file" type="file" accept=".txt,.vn,.zip,text/plain,application/zip"><svg aria-hidden="true"><use href="#i-file"/></svg><span>作品包或正文</span></label><label class="import-pick"><input id="folder" type="file" webkitdirectory><svg aria-hidden="true"><use href="#i-folder"/></svg><span>作品文件夹</span></label></div><pre id="import-error" role="alert" hidden></pre></dialog>
+  <dialog id="gallery-dialog" aria-labelledby="gallery-title">
+    <div class="gallery-toolbar"><h2 id="gallery-title">图集</h2><span id="gallery-count"></span><button id="gallery-reveal" type="button" role="switch" aria-checked="false"><span>显示全部</span><span class="gallery-switch" aria-hidden="true"></span></button><button id="gallery-close" type="button" aria-label="关闭图集"><svg class="ui-icon icon-close" aria-hidden="true"><use href="#i-close"/></svg></button></div>
+    <div class="gallery-body"><nav id="gallery-categories" aria-label="图集分类"></nav><div id="gallery-scroll"><div id="gallery-grid" role="list" aria-label="图片"></div><p id="gallery-empty" hidden>这部作品还没有图片。</p></div></div>
+    <div id="gallery-viewer" role="group" aria-label="查看图片" hidden><button id="gallery-viewer-close" type="button" aria-label="关闭图片"><svg class="ui-icon icon-close" aria-hidden="true"><use href="#i-close"/></svg></button><button id="gallery-prev" class="gallery-step" type="button" aria-label="上一张">‹</button><img id="gallery-viewer-image" alt=""><button id="gallery-next" class="gallery-step" type="button" aria-label="下一张">›</button><p><span id="gallery-viewer-name"></span><small id="gallery-viewer-place"></small></p></div>
+  </dialog>
+  
+  <dialog id="cast-dialog" aria-labelledby="cast-title"><div class="cast-toolbar"><button id="cast-back" hidden><svg class="ui-icon icon-back" aria-hidden="true"><use href="#i-back"/></svg><span>演员表</span></button><h2 id="cast-title">演员表</h2><button id="cast-close" aria-label="关闭人物资料"><svg class="ui-icon icon-close" aria-hidden="true"><use href="#i-close"/></svg></button></div><div id="cast-body"></div></dialog>
+  <dialog id="settings-dialog" class="settings-panel" aria-labelledby="settings-title"><div class="settings-toolbar"><h2 id="settings-title">设置</h2><button data-close type="button" aria-label="关闭设置"><svg class="ui-icon icon-close" aria-hidden="true"><use href="#i-close"/></svg></button></div>
+    <div class="settings-body"><div class="settings-list">
+      <div class="setting-group"><div class="setting-row is-wide"><span>分屏方式</span><div class="setting-choice" id="split" role="group" aria-label="分屏方式"><button type="button" data-split="script" aria-pressed="true">逐句分屏</button><button type="button" data-split="paragraph" aria-pressed="false">按原文自然段</button></div></div></div>
+      <div class="setting-group">
+        <label class="setting-row is-wide"><span>主题</span><select id="theme-global"></select></label>
+        <label class="setting-row"><span>对话框高度</span><input id="dialogue-lines" type="range" min="2" max="8" step="1" value="3"><output id="dialogue-lines-value"></output></label>
+        <label class="setting-row"><span>对话框透明度</span><input id="dialogue-transparency" type="range" min="0" max="100" step="1" value="30"><output id="dialogue-transparency-value"></output></label>
+        <label class="setting-row"><span>字号</span><input id="font" type="range" min="16" max="32" step="1" value="20"><output id="font-value"></output></label>
+        <label class="setting-row"><span>行距</span><input id="line-spacing" type="range" min="-3" max="3" step="1" value="0"><output id="line-spacing-value"></output></label>
+      </div>
+      <div class="setting-group">
+        <label class="setting-row is-wide"><span>文字显示</span><select id="speed"><option value="0">立即显示</option><option value="20" selected>快速</option><option value="40">适中</option><option value="75">缓慢</option></select></label>
+        <label class="setting-row"><span>自动播放停留</span><input id="delay" type="range" min="1" max="8" step="0.5" value="2.5"><output id="delay-value"></output></label>
+      </div>
+    </div><div class="settings-sample" id="settings-sample" aria-hidden="true"><div class="settings-sample-band"><p id="settings-sample-text"></p></div></div></div>
+  </dialog>
+  <dialog id="cut-in-viewer" aria-label="细节特写"><img id="cut-in-viewer-image" alt="细节特写"></dialog>
+  <dialog id="terms-dialog" class="reference-panel" data-narrow="stack" aria-labelledby="terms-dialog-title"><div class="reference-toolbar"><button class="reference-back" type="button"><svg class="ui-icon icon-back" aria-hidden="true"><use href="#i-back"/></svg><span>词条</span></button><h2 id="terms-dialog-title">词条</h2><span class="reference-count"></span><button class="reference-close" type="button" aria-label="关闭词条"><svg class="ui-icon icon-close" aria-hidden="true"><use href="#i-close"/></svg></button></div><div class="reference-body"><div class="reference-list"><input class="reference-filter" type="search" placeholder="查找词条" aria-label="查找词条"><div class="reference-entries" role="list" aria-label="词条"></div></div><div class="reference-detail" aria-live="polite"></div></div></dialog>
+  <dialog id="appendix-dialog" class="reference-panel" data-narrow="drill" aria-labelledby="appendix-dialog-title"><div class="reference-toolbar"><button class="reference-back" type="button"><svg class="ui-icon icon-back" aria-hidden="true"><use href="#i-back"/></svg><span>附录</span></button><h2 id="appendix-dialog-title">附录</h2><span class="reference-count"></span><button class="reference-close" type="button" aria-label="关闭附录"><svg class="ui-icon icon-close" aria-hidden="true"><use href="#i-close"/></svg></button></div><div class="reference-body"><div class="reference-list"><div class="reference-entries" role="list" aria-label="附录"></div></div><div class="reference-detail" aria-live="polite"></div></div></dialog>
+  <div id="toast" role="status" hidden></div>
+  <script src="src/ui/app.js" type="module"></script>
+</body></html>

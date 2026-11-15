@@ -1,0 +1,21 @@
+@vn 0.10
+@book cut-test title="旧钥匙"
+@chapter ch1 title="抽屉"
+@narration b1
+@source p000001
+抽屉里放着一把铜钥匙。
+@source p000002
+钥匙的圆环上留着一道刻痕。
+@source p000003
+他关上了抽屉。
+@chapter ch2 title="门前"
+@narration b2
+@source p000004
+他又拿出那把铜钥匙。
+@source p000005
+刻痕仍在。
+@source p000006
+门开了。
+
+// @vn-director {"chapterId":"ch1","backgrounds":[],"omittedBlocks":[],"cgs":[],"generation":{"backgrounds":false,"locationBackgrounds":false,"detailedScenes":false,"cgs":false,"cutIns":true,"characterVariants":false,"locationVariants":false,"standing":false,"ambients":false},"version":13,"artStyles":{"background":"Soft ink wash.","character":""},"cutIns":[{"id":"brass-key","reason":"重要物品。","prompt":"A brass key with a scratch on its round bow, close-up."}],"cutInUses":[{"cutInId":"brass-key","from":"b1:1","to":"b1:2"}],"characters":[],"variants":[],"states":[],"ambients":[],"ambientBlocks":[]}
+// @vn-director {"chapterId":"ch2","backgrounds":[],"omittedBlocks":[],"cgs":[],"generation":{"backgrounds":false,"locationBackgrounds":false,"detailedScenes":false,"cgs":false,"cutIns":true,"characterVariants":false,"locationVariants":false,"standing":false,"ambients":false},"version":13,"artStyles":{"background":"Soft ink wash.","character":""},"cutIns":[],"cutInUses":[{"cutInId":"brass-key","from":"b2:1","to":"b2:2"}],"characters":[],"variants":[],"states":[],"ambients":[],"ambientBlocks":[]}

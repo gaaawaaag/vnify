@@ -1,0 +1,22 @@
+@vn 0.10
+@book annotations title="白塔来信"
+@character lin label="林舟" color="#79b9ae"
+@chapter ch01 title="正文"
+// @vn-note {"id":"b001_n01","text":"译者注：白塔旧址是当地对旧钟楼遗址的称呼。\n文中沿用居民口中的旧名。","source":["p000001"]}
+// @vn-note {"id":"b001_n02","text":"注：这里指居住在钟楼附近街道的人们。","source":["p000005"]}
+@scene b001_s01
+@source p000001
+{{lin|林舟}}望着{{note:b001_n01|白塔旧址}}，停下脚步。
+@narration b001_p01
+@source p000002
+// @vn-page
+{{note:b001_n02|旧街居民}}仍然记得它。
+白塔的名字又一次出现在信中。
+@document b001_d01
+@source p000003
+@text
+致旧友：
+我已抵达{{note:b001_n01|白塔旧址}}。
+愿你平安。
+@enddocument
+// @source-use p000005 kind=annotation reason="章末原注已随对应正文保存"

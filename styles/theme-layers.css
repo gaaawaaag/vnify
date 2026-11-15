@@ -1,0 +1,103 @@
+/* Theme decoration layers. Each slot stays off (no pseudo-element at all) until a theme sets
+   --<slot>-layer: "" and supplies --<slot>-texture (a background value) and/or --<slot>-frame
+   (a border-image value). --<slot>-outset grows the layer beyond the element. See docs/theme-guide.md. */
+
+#reader:not(.document-mode) #card::before {
+  content: var(--dialogue-layer, none);
+  inset: calc(-1 * var(--dialogue-outset, 0px));
+  background: var(--dialogue-texture, none);
+  border-image: var(--dialogue-frame, none);
+}
+
+#speaker::before {
+  content: var(--nameplate-layer, none);
+  inset: calc(-1 * var(--nameplate-outset, 0px));
+  background: var(--nameplate-texture, none);
+  border-image: var(--nameplate-frame, none);
+}
+
+:is(#reader:not(.document-mode) #card, #speaker)::before {
+  position: absolute;
+  z-index: -1;
+  border-style: solid;
+  border-width: 0;
+  border-color: transparent;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+#reader.document-mode:not(.verse-mode) #card::before {
+  content: var(--document-layer, none);
+  inset: calc(-1 * var(--document-outset, 0px));
+  background: var(--document-texture, none);
+  border-image: var(--document-frame, none);
+}
+
+#reader :is(#open-contents, #chapter-list button, #reader-menu-list button)::after {
+  content: var(--toolbar-layer, none);
+  inset: calc(-1 * var(--toolbar-outset, 0px));
+  background: var(--toolbar-texture, none);
+  border-image: var(--toolbar-frame, none);
+}
+
+#reader #chapter-intro::before {
+  content: var(--chapter-layer, none);
+  inset: calc(-1 * var(--chapter-outset, 0px));
+  background: var(--chapter-texture, none);
+  border-image: var(--chapter-frame, none);
+}
+
+#reader #scene-intro::before {
+  content: var(--scene-layer, none);
+  inset: calc(-1 * var(--scene-outset, 0px));
+  background: var(--scene-texture, none);
+  border-image: var(--scene-frame, none);
+}
+
+#dialogue-avatar::before {
+  content: var(--portrait-layer, none);
+  inset: calc(-1 * var(--portrait-outset, 0px));
+  background: var(--portrait-texture, none);
+  border-image: var(--portrait-frame, none);
+}
+
+/* The title layer sits over the cover image and under the title text. */
+#title-screen-content::before {
+  content: var(--title-layer, none);
+  inset: calc(-1 * var(--title-outset, 0px));
+  background: var(--title-texture, none);
+  border-image: var(--title-frame, none);
+  z-index: 1;
+}
+
+:is(#reader.document-mode:not(.verse-mode) #card, #reader #chapter-intro, #reader #scene-intro,
+  #dialogue-avatar, #title-screen-content)::before,
+#reader :is(#open-contents, #chapter-list button, #reader-menu-list button)::after {
+  position: absolute;
+  border-style: solid;
+  border-width: 0;
+  border-color: transparent;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+:is(#reader.document-mode:not(.verse-mode) #card, #reader #chapter-intro, #reader #scene-intro)::before,
+#reader :is(#open-contents, #chapter-list button, #reader-menu-list button)::after {
+  z-index: -1;
+}
+
+/* A portrait frame overlays the picture. */
+#dialogue-avatar::before {
+  z-index: 1;
+}
+
+/* Windows (settings, history, Extra…) and the hover card take a texture and frame directly. */
+dialog, .character-hover {
+  background-image: var(--window-texture);
+  border-image: var(--window-frame);
+}
+
+#reader :is(.reader-top button, #reader-quick button) {
+  border-radius: var(--toolbar-button-radius);
+  background-image: var(--toolbar-button-texture);
+}

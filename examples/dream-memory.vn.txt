@@ -1,0 +1,32 @@
+@vn 0.10
+@book intro_effects title="原创效果试读"
+@character visitor label="旅客" color="#79b9ae"
+@location room label="候车室"
+@chapter ch title="正文"
+@scene before loc=room
+@source p000001
+雨落在窗外。
+@scene arrival loc=room effect=memory
+@source p000002
+@reveal visitor
+{{visitor|旅客}}推门而入。
+[visitor|心声] 我怎么又来到这里了？
+@source p000003
+[visitor] 我叫林舟。
+@scene sleep loc=room effect=dream
+@source p000004
+窗外漂浮着一座车站。
+@effect next memory
+[visitor] 那是我曾经去过的地方。
+梦中的车站渐渐消失。
+@narration awake
+@source p000005
+雨还在下。
+
+// @vn-dossiers-begin
+// @dossier 2
+// @intro visitor summary="一位来访的旅客。"
+// @after arrival
+// @person visitor fullName="林舟" summary="自称林舟的旅客。"
+// @entry visitor name text="自称林舟。" importance=core reason="识别人物。"
+// @vn-dossiers-end

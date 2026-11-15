@@ -1,0 +1,23 @@
+@vn 0.10
+@book global_avatar_demo title="书房里的银发"
+@character lin label="林舟" color="#79b9ae"
+@character observer label="观察者" color="#b88a67"
+@chapter ch1 title="归来"
+@scene s1 pov=observer
+@source p000001
+[lin] 你还留着这张旧桌子。
+@chapter ch2 title="近看"
+@scene s2
+@source p000002
+林舟天生的银发映着窗外的微光。
+@chapter ch3 title="窗边"
+@scene s3
+@source p000003
+[lin] 我把窗户关上吧。
+// @vn-dossiers-begin
+// @dossier 2
+// @intro lin summary="重访旧书房的访客。"
+// @vn-dossiers-end
+// @vn-director {"version":13,"chapterId":"ch1","backgrounds":[],"omittedBlocks":["s1"],"cgs":[],"generation":{"backgrounds":true,"locationBackgrounds":true,"cgs":true,"cutIns":false,"characterVariants":false,"locationVariants":false,"standing":true,"ambients":true},"artStyles":{"background":"Restrained digital illustration with soft natural light.","character":"Restrained digital illustration with soft natural light."},"cutIns":[],"cutInUses":[],"characters":[{"characterId":"lin","evidence":["p000001"],"assumptions":["未说明发色和衣领，采用棕色短发与深色衣领。"],"face":"A refined anime illustration for a visual novel avatar, centered head-and-shoulders portrait with short brown hair, three-quarter view facing the right side of the image, natural full colors under neutral lighting, dark simple collar, complete head suitable for square cropping, opaque subtle dark saturated #79b9ae gradient background only, no text or watermark.","body":""},{"characterId":"observer","evidence":[],"assumptions":["视角人物缺少外貌描写，采用深棕短发、朴素衣领及平静神情的统一设计。"],"face":"A refined anime illustration for a visual novel avatar, centered head-and-shoulders portrait with short dark brown hair, a plain collar and calm expression, three-quarter view facing the right side of the image, natural full colors under neutral lighting, complete head suitable for square cropping, opaque subtle dark saturated #b88a67 gradient background only, no text or watermark.","body":""}],"variants":[],"states":[],"ambients":[{"id":"ch1.ambient","name":"归来","prompt":"An abstract painting of soft window light."}],"ambient":"ch1.ambient","ambientBlocks":[]}
+// @vn-director {"version":13,"chapterId":"ch2","backgrounds":[],"omittedBlocks":["s2"],"cgs":[],"generation":{"backgrounds":true,"locationBackgrounds":true,"cgs":true,"cutIns":false,"characterVariants":false,"locationVariants":false,"standing":true,"ambients":true},"artStyles":{"background":"Restrained digital illustration with soft natural light.","character":"Restrained digital illustration with soft natural light."},"cutIns":[],"cutInUses":[],"characters":[{"characterId":"lin","evidence":["p000002"],"assumptions":["短发长度和深色衣领仍为默认设计。"],"face":"A refined anime illustration for a visual novel avatar, centered head-and-shoulders portrait with short natural silver hair, three-quarter view facing the right side of the image, natural full colors under neutral lighting, dark simple collar, complete head suitable for square cropping, opaque subtle dark saturated #79b9ae gradient background only, no text or watermark.","body":""}],"variants":[],"states":[],"ambients":[],"ambient":"ch1.ambient","ambientBlocks":[]}
+// @vn-director {"version":13,"chapterId":"ch3","backgrounds":[],"omittedBlocks":["s3"],"cgs":[],"generation":{"backgrounds":true,"locationBackgrounds":true,"cgs":true,"cutIns":false,"characterVariants":false,"locationVariants":false,"standing":true,"ambients":true},"artStyles":{"background":"Restrained digital illustration with soft natural light.","character":"Restrained digital illustration with soft natural light."},"cutIns":[],"cutInUses":[],"characters":[],"variants":[],"states":[],"ambients":[],"ambient":"ch1.ambient","ambientBlocks":[]}

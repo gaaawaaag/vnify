@@ -1,0 +1,8 @@
+# Only what the cloud player serves goes into the image.
+*
+!package.json
+!index.html
+!src
+!styles
+!assets
+!examples

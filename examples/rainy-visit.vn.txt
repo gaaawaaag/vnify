@@ -1,0 +1,82 @@
+@vn 0.10
+@book rainy_visit title="雨夜来客（原创格式样例）" author="vnify."
+
+// 本文件直接创作为协议样例，并非对已有小说的改写。
+// p001—p009 为示例来源锚点，实际转换必须指向另附的编号原文。
+@character lin label="林舟" color="#79b9ae"
+@character visitor label="陌生少女" color="#d3ab61"
+@location inn label="旅店"
+@location street label="街道"
+@profile visitor first facts="灰色外套" prompt="单人立绘，灰色外套，全身构图" inferred=""
+@profile visitor later facts="灰色外套；左手有一道旧伤" prompt="单人立绘，灰色外套，左手有一道旧伤，全身构图" inferred=""
+@profile inn first facts="木制柜台；窗上有雨水" prompt="旅店室内，木制柜台，雨窗，无人物" inferred=""
+
+@chapter ch01 title="窗上的雨"
+@scene s01 loc=inn time="深夜" pov=lin title="雨中的旅店"
+@source p001
+@reveal lin
+@reveal inn profile=first
+雨水沿着旅店的玻璃缓慢滑落。
+{{lin|林舟}}推开门，看见一个穿灰色外套的少女站在柜台旁。
+
+@source p002
+@reveal visitor profile=first
+[visitor] 你还是来了。
+她说完便看向门外，手指攥着袖口。
+[lin] 你认识我？
+
+@source p003
+@effect next memory
+昨天送信的人也问过他同样的问题：你认识我？
+窗外一声闷雷，把他的思绪拉了回来。
+
+@source p004
+[visitor] 我叫莉亚。
+@reveal visitor label="莉亚"
+{{visitor|莉亚}}把左手放在柜台上。
+手背有一道旧伤。
+@reveal visitor profile=later
+[lin|心声] 那封信会是她写的吗？
+
+@scene s02 loc=street time="傍晚" pov=lin effect=memory title="昨日的来信"
+@source p005
+@reveal street
+街上还没有下雨。
+{{lin|林舟}}站在路灯旁，拆开那封没有署名的信。
+纸上只有一句话：今晚不要去旅店。
+
+@scene s03 loc=inn time="深夜" pov=lin
+@source p006
+{{lin|林舟}}收回目光。
+此刻，那封信仍在他的口袋里。
+[lin] 你在等我做什么？
+[visitor] 先把门关上。
+
+@narration b01
+@source p007
+那一夜，他们谈了很久。
+直到天亮，雨也没有停。
+
+@scene s04 loc=street time="清晨" pov=lin
+@source p008
+旅店的门在{{lin|林舟}}身后合上。
+他站在屋檐下，迟迟没有走进雨里。
+
+@narration p01
+@source p009
+多年以后，他仍会想起那个雨夜。
+记忆留下的并非她说过的话，而是玻璃上迟迟没有落下的一滴水。
+
+// @vn-dossiers-begin
+// @dossier 2
+// @at s01 source=p001 quote="林舟推开门，看见一个穿灰色外套的少女站在柜台旁。" occurrence=1
+// @person lin fullName="林舟" summary="雨夜走进旅店的来客。"
+// @at s01 source=p002 quote="你还是来了。" occurrence=1
+// @person visitor summary="在旅店等待林舟的少女。"
+// @portrait visitor default facts="灰色外套。"
+// @entry visitor meeting text="似乎早就在等林舟，尚未说明缘由。" importance=core reason="理解这次相遇的关键。"
+// @at s01 source=p004 quote="我叫莉亚。" occurrence=1
+// @person visitor fullName="莉亚" summary="在雨夜旅店等待林舟，自称莉亚的少女。"
+// @at s01 source=p004 quote="手背有一道旧伤。" occurrence=1
+// @portrait visitor default facts="灰色外套；左手手背有一道旧伤。"
+// @vn-dossiers-end

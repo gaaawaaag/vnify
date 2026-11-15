@@ -1,0 +1,29 @@
+# Production input and per-work directories stay local.
+/input/*
+!/input/.gitkeep
+/works/*
+!/works/.gitkeep
+
+# Theme screenshots (scripts/theme-shots.mjs).
+/theme-shots/
+
+# Dependencies (Electron is a dev-only experiment).
+/node_modules/
+
+# Local bookshelf of `npm start` (books, progress, covers).
+/data/
+
+# Desktop builds.
+/dist/
+
+# Cloud deployment settings (passphrase).
+/.env
+
+# Personal production presets, edited in the manager and read by the agent (see skills/vn-convert).
+/presets.json
+/image-presets.json
+/preferences.md
+# The asset manager's built page (npm run manager:build).
+/dist-manager/
+# Image model prompt notes kept by the agent or the user (see skills/vn-director).
+/image-models/
