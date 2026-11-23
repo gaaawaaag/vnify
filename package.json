@@ -1,7 +1,6 @@
 {
   "name": "vnify",
-  "productName": "vnify",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "vnify. 小说视觉化：本地制作、配图与阅读",
   "author": "vnify",
   "private": true,
@@ -17,60 +16,17 @@
     "validate": "node scripts/validate.mjs",
     "number-source": "node scripts/number-source.mjs",
     "apply-patches": "node scripts/apply-patches.mjs",
-    "cutout": "node scripts/cutout.mjs",
-    "desktop": "node scripts/prompts.mjs --build && electron .",
-    "dist": "node scripts/prompts.mjs --check && electron-builder --win"
+    "cutout": "node scripts/cutout.mjs"
   },
   "devDependencies": {
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.2",
-    "electron": "44.7.0",
-    "electron-builder": "25.1.8",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "typescript": "7.0.2",
     "vite": "8.3.4"
-  },
-  "main": "src/desktop/main.mjs",
-  "build": {
-    "appId": "app.vnify",
-    "productName": "vnify",
-    "directories": {
-      "output": "dist",
-      "buildResources": "build"
-    },
-    "electronDist": "node_modules/electron/dist",
-    "files": [
-      "package.json",
-      "index.html",
-      "src/**/*",
-      "styles/**/*",
-      "assets/**/*",
-      "examples/**/*",
-      "!src/server/server.mjs",
-      "!node_modules/sharp/**/*",
-      "!node_modules/@img/**/*"
-    ],
-    "win": {
-      "target": [
-        "nsis",
-        "portable"
-      ],
-      "icon": "build/icon.png"
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "deleteAppDataOnUninstall": false,
-      "artifactName": "${productName}-${version}-setup.${ext}",
-      "shortcutName": "vnify."
-    },
-    "portable": {
-      "artifactName": "${productName}-${version}-portable.${ext}"
-    }
   },
   "dependencies": {
     "sharp": "0.35.5"

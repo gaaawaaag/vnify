@@ -47,10 +47,11 @@ export function directorOptions(value={}) {
   if(value.protocolVersion!==undefined&&value.protocolVersion!==DIRECTOR_VERSION)throw new Error(`导演设置需要 protocolVersion: ${DIRECTOR_VERSION}。`);
   if(value.enabled!==undefined&&typeof value.enabled!=='boolean')throw new Error('Director 开关无效。');
   if(value.backgrounds!==undefined&&typeof value.backgrounds!=='boolean')throw new Error('背景生图开关无效。');
-  for(const key of [...DIRECTOR_IMAGE_FLAGS,'titleCard']) {
+  for(const key of [...DIRECTOR_IMAGE_FLAGS,'titleCard','endCard','voicePortraits','musicTracks']) {
     if(value[key]!==undefined&&typeof value[key]!=='boolean')throw new Error(`导演用途 ${key} 开关无效。`);
   }
   for(const key of ['maxImages','maxCutIns','maxVariants'])if(value[key]!==undefined)throw new Error(`${key} 已取消：改用 density 疏密档位与可选的 imageLimit 全书总数。`);
+  if(value.musicDensity!==undefined&&!['few','medium','rich'].includes(value.musicDensity))throw new Error('musicDensity 须为 few、medium 或 rich。');
   const ratio=value.ratio??'16:9';
   if(![...RATIOS.landscape,...RATIOS.portrait].includes(ratio))throw new Error(`画面比例须为 ${[...RATIOS.landscape,...RATIOS.portrait].join('、')} 之一。`);
   const imageLimit=value.imageLimit??null;
@@ -65,11 +66,12 @@ export function directorOptions(value={}) {
   const options={
     enabled:value.enabled??false,protocolVersion:DIRECTOR_VERSION,
     backgrounds:value.backgrounds??true,
-    ambients:value.ambients??true,locationBackgrounds:value.locationBackgrounds??true,cgs:value.cgs??true,titleCard:value.titleCard??true,
+    ambients:value.ambients??true,locationBackgrounds:value.locationBackgrounds??true,cgs:value.cgs??true,titleCard:value.titleCard??true,endCard:value.endCard??false,
     cutIns:value.cutIns??false,
     standing:value.standing??true,
     characterVariants:value.characterVariants??false,locationVariants:value.locationVariants??false,
     density:directorDensity(value.density),imageLimit,ratio,subjectFormat:subjectFormat.trim(),
+    ...(value.voicePortraits?{voicePortraits:true}:{}),...(value.musicTracks?{musicTracks:true,musicDensity:value.musicDensity??'medium'}:{}),
   };
   const styles=validateArtStyles({background:value.backgroundStyle??'',character:value.characterStyle??''});
   const styleModes=value.styleModes?{background:value.styleModes.background,character:value.styleModes.character}:styleModesOf(value);
@@ -116,6 +118,8 @@ export function directorTaskRules(settings,lang) {
   if(g.cutIns)rules.push(part('director11.cut-in'));
   if(g.standing)rules.push(part('director11.characters'));
   if(g.characterVariants||g.locationVariants)rules.push(part('director11.variants'));
+  // The standard of each density level, once any kind with a density is made.
+  if(Object.keys(usedDensity(directorDensity(settings.density),g)).length)rules.push(part('director11.density'));
   if(g.standing)rules.push(part('director11.staging'));
   if(g.standing||g.locationBackgrounds)rules.push(part('director11.design-conflicts'));
   return rules.join('\n\n');

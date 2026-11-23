@@ -9,19 +9,22 @@ export const SHELF_ROWS=[2,3,4,6,0];
 const SHELF_DEFAULTS={rows:3,originalCover:true};
 export function readShelfSettings(value) {
   const settings={...SHELF_DEFAULTS,...(value&&typeof value==='object'?value:{})};
-  return {rows:SHELF_ROWS.includes(Number(settings.rows))?Number(settings.rows):SHELF_DEFAULTS.rows,originalCover:settings.originalCover!==false};
+  return {rows:SHELF_ROWS.includes(Number(settings.rows))?Number(settings.rows):SHELF_DEFAULTS.rows,originalCover:settings.originalCover!==false,
+    showRating:settings.showRating===true};
 }
 // The list has no columns; a page holds as many rows as the wide covers would show at this width (230px cards,
 // 22px apart, two columns on narrow screens: see #shelf-grid in style.css), times the rows setting.
 function wideColumns(width) {
   return matchMedia('(max-width:600px)').matches?2:Math.max(1,Math.floor((width+22)/(230+22)));
 }
-// How far into the book the shelf position is, in whole percent; null before the first save.
+/* How far into the book the shelf position is, in whole percent; null before the first save. A finished book stays at
+ * 100 however it is turned back afterwards. */
 export function readingPercent(book) {
+  if(book.finishedAt)return 100;
   const p=book.progress;
   return p&&Number.isInteger(p.index)&&p.count?Math.min(100,Math.floor((p.index+1)/p.count*100)):null;
 }
-export function createBookshelf({client,onOpen,onRemoved=()=>{},onBooks=()=>{},toast,storage=()=>globalThis.localStorage}) {
+export function createBookshelf({client,device,onOpen,onRemoved=()=>{},onBooks=()=>{},toast,storage=()=>globalThis.localStorage}) {
   const $=id=>document.getElementById(id);
   let books=[],menu=null,page=0,pageSize=0;
   let settings=readShelfSettings(null);
@@ -37,6 +40,12 @@ export function createBookshelf({client,onOpen,onRemoved=()=>{},onBooks=()=>{},t
     menu.list.hidden=true;menu.button.setAttribute('aria-expanded','false');menu=null;
   }
   const stateText=value=>value===null?t('未读'):value>=100?t('读完'):`${value}%`;
+  // The reader's rating as five small diamonds, when the shelf settings ask for it.
+  function diamonds(rating) {
+    const box=element('span','mini-diamonds');box.setAttribute('aria-label',t('{n} 分',{n:rating}));box.title=t('{n} 分',{n:rating});
+    for(let n=1;n<=5;n++)box.append(element('i',n<=rating?'on':''));
+    return box;
+  }
   function bar(value) {
     const track=element('span','shelf-bar'),fill=element('i');
     fill.style.width=`${value}%`;track.append(fill);return track;
@@ -75,7 +84,9 @@ export function createBookshelf({client,onOpen,onRemoved=()=>{},onBooks=()=>{},t
     };
     const info=element('button','',t('编辑信息'));info.type='button';
     info.onclick=()=>{closeMenu();editInfo(book);};
-    list.append(info,download,remove);
+    const rate=element('button','',t('评分与短评'));rate.type='button';
+    rate.onclick=()=>{closeMenu();void editReview(book);};
+    list.append(info,rate,download,remove);
     more.onclick=event=>{
       event.stopPropagation();
       const opens=list.hidden;closeMenu();
@@ -128,6 +139,7 @@ export function createBookshelf({client,onOpen,onRemoved=()=>{},onBooks=()=>{},t
     if(book.progress?.chapter)meta.append(element('span','shelf-where',book.progress.chapter),element('span','shelf-where shelf-dot','·'));
     meta.append(element('span','shelf-state',stateText(value)));
     if(value!==null&&value<100)meta.append(bar(value));
+    if(settings.showRating&&book.rating)meta.append(diamonds(book.rating));
     info.append(meta);
     open.append(cover(book),info);
     open.onclick=()=>{closeMenu();onOpen(book);};
@@ -143,6 +155,7 @@ export function createBookshelf({client,onOpen,onRemoved=()=>{},onBooks=()=>{},t
     const where=element('span','shelf-where');where.append(...tags(book),book.progress?.chapter??'');
     const progress=element('span','shelf-progress-cell'),value=readingPercent(book);
     progress.append(bar(value??0),element('span','shelf-state',stateText(value)));
+    if(settings.showRating&&book.rating)progress.append(diamonds(book.rating));
     const markCell=element('span','shelf-marks'),found=marks(book);if(found)markCell.append(found);
     open.append(names,markCell,where,progress,element('span','shelf-when',whenText(book)));
     open.onclick=()=>{closeMenu();onOpen(book);};
@@ -266,17 +279,18 @@ export function createBookshelf({client,onOpen,onRemoved=()=>{},onBooks=()=>{},t
   let editing=null;
   function editInfo(book) {
     editing=book;
-    $('book-info-title').value=book.title;$('book-info-author').value=book.author??'';$('book-info-error').hidden=true;
+    $('book-info-title').value=book.title;$('book-info-author').value=book.author??'';$('book-info-blurb').value=book.blurb??'';
+    $('book-info-error').hidden=true;
     $('book-info-save').disabled=false;
     $('book-info-dialog').showModal();$('book-info-title').select();
   }
   $('book-info-form').addEventListener('submit',async event=>{
     event.preventDefault();
-    const book=editing,title=$('book-info-title').value.trim(),author=$('book-info-author').value.trim()||null;
+    const book=editing,title=$('book-info-title').value.trim(),author=$('book-info-author').value.trim()||null,blurb=$('book-info-blurb').value.trim();
     if(!book||!title)return;
     $('book-info-save').disabled=true;
     try {
-      await client.saveInfo(book.key,{title,author});
+      await client.saveInfo(book.key,{title,author,blurb});
       $('book-info-dialog').close();
       await refresh();
     } catch(error) {
@@ -284,6 +298,44 @@ export function createBookshelf({client,onOpen,onRemoved=()=>{},onBooks=()=>{},t
     } finally {$('book-info-save').disabled=false;}
   });
   $('book-info-dialog').addEventListener('close',()=>{editing=null;});
+  // Rating (five diamonds, click the lit one again to clear) and review, the same ones the end card shows.
+  let reviewing=null,reviewRating=null;
+  for(let n=1;n<=5;n++) {
+    const button=element('button');button.type='button';button.dataset.n=String(n);button.append(element('i'));
+    $('review-rating').append(button);
+  }
+  function paintReview() {
+    for(const button of $('review-rating').children) {
+      const n=Number(button.dataset.n);
+      button.classList.toggle('on',reviewRating!==null&&n<=reviewRating);
+      button.setAttribute('aria-label',t('{n} 分',{n}));button.setAttribute('aria-pressed',String(reviewRating===n));
+    }
+  }
+  $('review-rating').addEventListener('click',event=>{
+    const button=event.target.closest('button');if(!button)return;
+    const n=Number(button.dataset.n);reviewRating=reviewRating===n?null:n;paintReview();
+  });
+  async function editReview(book) {
+    let record;
+    try {record=await client.record(book.key);} catch(error) {toast(error.message);return;}
+    reviewing=book;reviewRating=record.rating;paintReview();
+    $('review-book').textContent=t('《{title}》',{title:book.title});
+    $('review-text').value=record.review;$('review-error').hidden=true;$('review-save').disabled=false;
+    $('review-dialog').showModal();
+  }
+  $('review-form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    const book=reviewing;if(!book)return;
+    $('review-save').disabled=true;
+    try {
+      await client.saveReview(book.key,device,{rating:reviewRating,review:$('review-text').value.trim()});
+      $('review-dialog').close();
+      await refresh();
+    } catch(error) {
+      $('review-error').textContent=error.message;$('review-error').hidden=false;
+    } finally {$('review-save').disabled=false;}
+  });
+  $('review-dialog').addEventListener('close',()=>{reviewing=null;});
   document.addEventListener('click',event=>{if(menu&&!menu.list.contains(event.target))closeMenu();});
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&menu){const button=menu.button;closeMenu();button.focus();}});
   return {

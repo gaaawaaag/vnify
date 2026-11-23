@@ -13,6 +13,8 @@ export type BackgroundScope='ambients'|'locations'|'cgs'|'cutIns'|'variants';
 // Each scope maps its target ID (ambient, location, CG, Cut-in, location variant) to an image ID.
 export interface BackgroundBindings extends Record<BackgroundScope,Record<string,string|null>> {
   book:string|null;titleCard:string|null;
+  // The closing picture behind the end card; optional, the title card stands in without it.
+  endCard?:string|null;
 }
 export interface Backgrounds {version:8;bookId:string;bindings:BackgroundBindings;images:ImageMap}
 
@@ -37,12 +39,28 @@ export interface Extra<I extends ImageMeta=ImageMeta> {
 export type ValidatedExtra<V>=0 extends 1&V?Extra:V extends {images:Record<string,infer I extends ImageMeta>}?Extra<I>:Extra;
 
 export interface PackagedImage extends ImageMeta {path:string}
+
+// Audio files (src/reader/audio-assets.js): the music record's tracks bound to files named by SHA-256.
+export type AudioType='audio/mpeg'|'audio/mp4'|'audio/ogg';
+export interface AudioSource {title?:string;author?:string;url?:string;license?:string}
+export interface AudioMeta {name:string;type:AudioType;source?:AudioSource}
+export interface AudioRecord extends AudioMeta {blob?:Blob;src?:string}
+// tracks: music tracks by ID; sounds: ambience and effects by ID (absent in manifests without any).
+export interface AudioAssets {version:1;bookId:string;bindings:{tracks:Record<string,string>;sounds?:Record<string,string>};files:Record<string,AudioRecord>}
+export interface PackagedAudio extends AudioMeta {path:string}
+
+// The package's credits record (src/reader/credits.js): image models, the work's notice, whether vnify. is credited.
+export interface PackageCredits {version:1;images:string[];notice?:string;signature:boolean;agents?:string[]}
 export interface PackageManifest {
   format:'vn-package';version:13;bookId:string;script:'story.vn.txt';complete:boolean;extra:'extra.json'|null;
   backgrounds:{version:8;bindings:BackgroundBindings;images:Record<string,PackagedImage>};
   characterImages:{version:5;bindings:Record<string,CharacterSlots>;images:Record<string,PackagedImage>};
+  // Present only when the work has credits from the asset manager or the command line.
+  credits?:PackageCredits;
+  // Present only when a track has a file.
+  audio?:{version:1;bindings:{tracks:Record<string,string>;sounds?:Record<string,string>};files:Record<string,PackagedAudio>};
 }
 // What importStoryPackage returns and the reader keeps for one book.
 export interface StoryBundle {
-  raw:string;backgrounds:Backgrounds;characterImages:CharacterImages;extra:Extra<ImageRecord>;complete:boolean;
+  raw:string;backgrounds:Backgrounds;characterImages:CharacterImages;extra:Extra<ImageRecord>;complete:boolean;audio:AudioAssets;credits:PackageCredits|null;
 }

@@ -13,6 +13,12 @@ import {reuseBackgroundMasters,bindGeneratedImage} from './image-jobs.js';
 import {TRANSPARENCY_METHODS} from '../core/image-prompts.js';
 import {withBookInfo} from '../core/parser.js';
 import {checkLookProfiles,resolveLooks} from '../conversion/looks.js';
+import {validateMusic} from '../core/music.js';
+import {validateVoices,readVoices} from '../core/voices.js';
+import {validateSounds,readSounds} from '../core/sounds.js';
+import {validateSoundDraft,mergeSoundDrafts,mergeMusicDrafts,soundOptions} from '../conversion/sound-director.js';
+import {readMusic} from '../core/music.js';
+import {audioType,emptyAudio,validateAudio,validateAudioSource,AUDIO_LIMIT} from '../reader/audio-assets.js';
 
 /* A director project (vn-agent-director-1) read into memory: the story with its director records and design checked,
  * and the images in project.images applied to the input's assets. The command line and the asset manager share it.
@@ -20,7 +26,7 @@ import {checkLookProfiles,resolveLooks} from '../conversion/looks.js';
 
 export const backgroundScopes=(/** @type {string} */ purpose)=>purpose==='cut-in'?['cutIns']:purpose==='cg'?['cgs']
   :purpose==='background'?['ambients','locations','variants']:[];
-const PURPOSES=['background','cg','cut-in','title-card','standing'];
+const PURPOSES=['background','cg','cut-in','title-card','end-card','standing'];
 
 /** @param {string} projectPath @param {{project?:any,files?:Map<string,string>}} [options] */
 export async function loadDirectorProject(projectPath,{project=null,files=new Map()}={}) {
@@ -64,6 +70,7 @@ export async function loadDirectorProject(projectPath,{project=null,files=new Ma
   // Once every chapter of the input is revised or redrafted, the art styles come from those records.
   if(job.imported.size&&[...job.imported.keys()].every(id=>Object.hasOwn(directors,id)||Object.hasOwn(revisions,id)))/** @type {any} */(job).selectedArtStyle=null;
   if(project.titleCard!==undefined)job.importedTitleCard=validateTitleCard(project.titleCard);
+  if(project.endCard!==undefined)/** @type {any} */(job).importedEndCard=validateTitleCard(project.endCard,'endCard');
   if(project.design!==undefined){
     if(typeof project.design!=='string')throw new Error('design 需要全书设计 JSON 文件路径。');
     const filename=path.resolve(base,project.design);inputs.push(filename);
@@ -81,7 +88,105 @@ export async function loadDirectorProject(projectPath,{project=null,files=new Ma
     let draft=null;try{draft=JSON.parse(record.director);}catch{}
     try{designConflicts[id]=readDesignConflicts(draft?.designConflicts,job.story,id);}catch(e){throw new Error(`${id}: ${/** @type {Error} */(e).message}`);}
   }
+  /* music: a JSON file {tracks:[{id,name,prompt?,file?,source?}],cues:[{from,track}]} (docs/dev/audio.md). The tracks and
+   * cues become the text's music record; a track's file (relative to that JSON) is bound in the package with its source.
+   * A track without a file keeps the file the input package bound to it, if any. Without music the input's stays. */
+  /** @type {import('../types/assets.js').AudioAssets} */
+  let audio=packed?.audio??emptyAudio(job.story.book.id);
+  /* The files of a list's entries ({id, file?, source?}, files relative to the list's JSON) bound into one slot of the
+   * audio bindings, replacing that slot; an entry without a file keeps the file the input package bound to it, and
+   * file: null takes it away. */
+  /** @param {any[]} entries @param {'tracks'|'sounds'} slot @param {string} what @param {string} filename */
+  const bindAudio=async(entries,slot,what,filename)=>{
+    const before=audio.bindings[slot]??{},bindings=/** @type {Record<string,string>} */({}),files={...audio.files};
+    for(const entry of entries) {
+      if(entry.file===null)continue;
+      if(entry.file===undefined) {
+        if(entry.source!==undefined)throw new Error(`${what} ${entry.id} 没有 file，不能写 source。`);
+        if(before[entry.id])bindings[entry.id]=before[entry.id];
+        continue;
+      }
+      if(typeof entry.file!=='string')throw new Error(`${what} ${entry.id} 的 file 须为音频文件路径。`);
+      const audioFile=path.resolve(path.dirname(filename),entry.file);inputs.push(audioFile);
+      const bytes=await readFile(audioFile);
+      if(bytes.length>AUDIO_LIMIT)throw new Error(`音频 ${entry.file} 超过 ${AUDIO_LIMIT/1024/1024} MB。`);
+      const type=audioType(bytes),blob=new Blob([bytes],{type}),id=await imageId(blob),source=validateAudioSource(entry.source);
+      bindings[entry.id]=id;
+      // Files kept by the manager are named by their hash; the source's title reads better.
+      files[id]={name:source?.title??path.basename(audioFile),type,blob,...(source?{source}:{})};
+    }
+    audio={...audio,bindings:{...audio.bindings,[slot]:bindings},files};
+  };
+  /** @param {unknown} value @param {string} field */
+  const listFile=async(value,field)=>{
+    if(typeof value!=='string')throw new Error(`${field} 需要清单 JSON 文件路径。`);
+    const filename=path.resolve(base,value);inputs.push(filename);
+    return {filename,value:JSON.parse(await text(filename))};
+  };
+  if(project.music!==undefined) {
+    const {filename,value}=await listFile(project.music,'music');
+    if(!value||typeof value!=='object'||!Array.isArray(value.tracks))throw new Error('音乐清单须为 {tracks, cues}。');
+    /** @type {any} */(job).music=validateMusic({tracks:value.tracks.map((/** @type {any} */ {file,source,...track})=>track),cues:value.cues},job.story);
+    await bindAudio(value.tracks,'tracks','曲目',filename);
+  }
+  /* sounds: a JSON file {sounds:[{id,name,kind,query?,prompt?,file?,source?}],places,blocks,effects} (src/core/sounds.js):
+   * the text's ambience and effects record, with the sounds' files bound like the music's. */
+  if(project.sounds!==undefined) {
+    const {filename,value}=await listFile(project.sounds,'sounds');
+    if(!value||typeof value!=='object'||!Array.isArray(value.sounds))throw new Error('音效清单须为 {sounds, places, blocks, effects}。');
+    try {
+      /** @type {any} */(job).sounds=validateSounds({...value,sounds:value.sounds.map((/** @type {any} */ {file,source,...sound})=>sound)},job.story);
+    } catch(e){throw new Error(`音效清单：${/** @type {Error} */(e).message}`);}
+    await bindAudio(value.sounds,'sounds','声音',filename);
+  }
+  /* soundDrafts: the sound director's chapter drafts ({chapterId: file}), merged in chapter order into the record above
+   * (or the input's): they add what it lacks, so edits made in the asset manager stay. soundOptions: density and notes
+   * for the packets. */
+  if(project.soundOptions!==undefined)soundOptions(project.soundOptions);
+  /** @type {import('../conversion/sound-director.js').SoundDraft[]} */
+  let soundDraftList=[];
+  if(project.soundDrafts!==undefined) {
+    const drafts=project.soundDrafts;
+    if(!drafts||typeof drafts!=='object'||Array.isArray(drafts))throw new Error('soundDrafts 需要章节 ID 到声音稿 JSON 文件的映射。');
+    const order=job.plan.map(p=>p.chapter.id),list=[];
+    for(const [chapterId,file] of Object.entries(drafts).sort(([a],[b])=>order.indexOf(a)-order.indexOf(b))) {
+      if(!order.includes(chapterId)||typeof file!=='string')throw new Error(`声音稿须属于现有章节：${chapterId}`);
+      const filename=path.resolve(base,file);inputs.push(filename);
+      try {list.push(validateSoundDraft(JSON.parse(await text(filename)),job.story,chapterId));}
+      catch(e){throw new Error(`${chapterId} 声音稿：${/** @type {Error} */(e).message}`);}
+    }
+    try {/** @type {any} */(job).sounds=mergeSoundDrafts(/** @type {any} */(job).sounds??readSounds(raw,job.story),list,job.story);}
+    catch(e){throw new Error(`声音稿合并：${/** @type {Error} */(e).message}`);}
+    soundDraftList=list;
+  }
+  /* The design's track list and the drafts' music cues fill in the music record (the project's music file, or the
+   * input's); what the record already has stays. */
+  const designTracks=/** @type {any} */(job).designDoc?.music??[];
+  if(designTracks.length||soundDraftList.some(draft=>draft.music.length)) {
+    try {
+      /** @type {any} */(job).music=mergeMusicDrafts(/** @type {any} */(job).music??readMusic(raw,job.story),designTracks,soundDraftList,job.story);
+    } catch(e){throw new Error(`音乐合并：${/** @type {Error} */(e).message}`);}
+  }
+  /* voices: a JSON file with the voice record ({labels, cast, portraits}, src/core/voices.js), written by the asset
+   * manager's voice pages or the agent. Without it the input's record stays. Portraits the whole-book design wrote fill
+   * in the roles the record does not describe. */
+  const designVoices=/** @type {any} */(job).designDoc?.voices;
+  if(project.voices!==undefined||designVoices) {
+    /** @type {any} */
+    let record=null;
+    try {
+      if(project.voices!==undefined) {
+        if(typeof project.voices!=='string')throw new Error('voices 需要音色分派 JSON 文件路径。');
+        const filename=path.resolve(base,project.voices);inputs.push(filename);
+        record=JSON.parse(await text(filename));
+      } else record=readVoices(raw,job.story);
+      record??={labels:{},cast:{characters:{}},portraits:{}};
+      if(designVoices)record={...record,portraits:{...designVoices,...record.portraits}};
+      /** @type {any} */(job).voices=validateVoices(record,job.story);
+    } catch(e){throw new Error(`音色分派：${/** @type {Error} */(e).message}`);}
+  }
   job.validate();
+  if(project.music!==undefined||project.sounds!==undefined)audio=validateAudio(audio,job.story);
   // Only supplied replacements must pass here; packets can be made before all chapters exist.
   for(const id of Object.keys(directors)){
     const record=job.records[job.plan.findIndex(p=>p.chapter.id===id)];
@@ -112,10 +217,10 @@ export async function loadDirectorProject(projectPath,{project=null,files=new Ma
   for(const asset of project.images??[]){
     const change=asset.remove||asset.adjust;
     if(!PURPOSES.includes(asset.purpose)||(!change&&typeof asset.file!=='string')) {
-      throw new Error('图片需要 file 与 background/cg/cut-in/title-card/standing purpose；移除用 remove:true，只改立绘设置用 adjust:true。');
+      throw new Error('图片需要 file 与 background/cg/cut-in/title-card/end-card/standing purpose；移除用 remove:true，只改立绘设置用 adjust:true。');
     }
-    // mode and sentPrompt only record how the image was made; they stay in the project file.
-    if(asset.mode!==undefined&&!['generate','edit','reference','cutout'].includes(asset.mode))throw new Error('图片 mode 须为 generate、edit、reference 或 cutout。');
+    // mode, sentPrompt and source only record how the image was made (search: from a photo library); they stay in the project file.
+    if(asset.mode!==undefined&&!['generate','edit','reference','cutout','search'].includes(asset.mode))throw new Error('图片 mode 须为 generate、edit、reference、cutout 或 search。');
     if(asset.sentPrompt!==undefined&&typeof asset.sentPrompt!=='string')throw new Error('图片 sentPrompt 须为字符串。');
     if((asset.flip!==undefined||asset.crop!==undefined||asset.adjust)&&asset.purpose!=='standing')throw new Error('flip、crop、adjust 只用于立绘。');
     if(asset.purpose==='standing'&&change) {
@@ -128,6 +233,7 @@ export async function loadDirectorProject(projectPath,{project=null,files=new Ma
       continue;
     }
     if(asset.purpose==='title-card'&&asset.remove){backgrounds.bindings.titleCard=null;continue;}
+    if(asset.purpose==='end-card'&&asset.remove){backgrounds.bindings.endCard=null;continue;}
     if(asset.remove){
       const scopes=backgroundScopes(asset.purpose);
       if(!Array.isArray(asset.refs)||!asset.refs.length||asset.refs.some(ref=>!scopes.includes(ref.scope)||typeof ref.id!=='string'))throw new Error('移除背景图片需要匹配 purpose 的 refs。');
@@ -142,7 +248,7 @@ export async function loadDirectorProject(projectPath,{project=null,files=new Ma
     const options={replace:Boolean(asset.replace),crop:asset.crop??null,flip:asset.flip??null};
     if(asset.purpose==='standing')characterImages=bindGeneratedImage(characterImages,job.story,/** @type {any} */(task),image,id,options);
     else {
-      if(asset.purpose!=='title-card'&&(!Array.isArray(asset.refs)||!asset.refs.length))throw new Error('背景图片需要 refs。');
+      if(!['title-card','end-card'].includes(asset.purpose)&&(!Array.isArray(asset.refs)||!asset.refs.length))throw new Error('背景图片需要 refs。');
       if(asset.refs?.some(ref=>!backgroundScopes(asset.purpose).includes(ref.scope)))throw new Error('背景 scope 须匹配 purpose。');
       backgrounds=bindGeneratedImage(backgrounds,job.story,/** @type {any} */(task),image,id,options);
     }
@@ -173,6 +279,6 @@ export async function loadDirectorProject(projectPath,{project=null,files=new Ma
       formatted.set(id,{format:entry.format,prompts:new Map(Object.entries(/** @type {Record<string,{text:string,source:string}>} */(entry.prompts)))});
     }
   }
-  return {project,projectPath,base,job,story:job.story,generation,chapters,directors,packed,backgrounds,characterImages,references,inputs,
+  return {project,projectPath,base,job,story:job.story,generation,chapters,directors,packed,backgrounds,characterImages,audio,references,inputs,
     prompts:new Map(Object.entries(/** @type {Record<string,string>} */(prompts))),formatted,designConflicts,lookNotices};
 }

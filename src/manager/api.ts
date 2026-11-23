@@ -41,7 +41,13 @@ export interface WorkDetail extends WorkSummary {
   chapterList: {chapterId: string; title: string; saved: boolean}[];
   styles: {background: string; character: string}; fixedStyles: string[]; catalog: Asset[];
   scheme: Scheme; queue: QueueState | null; exportImages: ExportImages;
+  voices: {roles: VoiceRole[]; record: VoiceRecord | null};
+  audio: WorkAudio;
+  credits: {settings: CreditSettings; sections: {key: string; items: {text: string; meta?: string; url?: string}[]}[]; unsigned: number};
 }
+// Who speaks in a work (narrator, other characters, each character with lines) and the voices the work gives them.
+export interface VoiceRole {key: string; label: string; count: number; lines: {text: string; chapter: string; place: string; thought: boolean}[]}
+export interface VoiceRecord {labels: Record<string, string>; cast: {narrator?: string; other?: string; characters: Record<string, string>}; portraits: Record<string, string>}
 const work = (id: string) => `/works/${encodeURIComponent(id)}`;
 export const imageUrl = (id: string, imageId: string) => `/api/manager${work(id)}/images/${imageId}`;
 export const listWorks = () => call<WorkSummary[]>('/works');
@@ -57,6 +63,9 @@ export const editStature = (id: string, edit: unknown, value: number | null) => 
 export const setPrompt = (id: string, key: string, text: string | null) => post<WorkDetail>(id, 'prompt', {key, text});
 export const setBookInfo = (id: string, info: {title: string; author: string | null}) => post<WorkDetail>(id, 'book', info);
 export const editStyles = (id: string, styles: {background?: string; character?: string}) => post<WorkDetail>(id, 'styles', styles);
+export const setWorkVoices = (id: string, record: VoiceRecord) => post<WorkDetail>(id, 'voices', record);
+export interface CreditSettings {notice: string; signature: boolean; agents: string[]}
+export const setCredits = (id: string, settings: CreditSettings) => post<WorkDetail>(id, 'credits', settings);
 export interface ExportImages {format: 'webp' | 'original'; quality: number}
 export interface ExportResult {file: string; solid: number; images: {converted: number; kept: number; saved: number; unavailable: boolean}; detail: WorkDetail}
 export const exportWork = (id: string, images: ExportImages) => post<ExportResult>(id, 'export', {images});
@@ -69,6 +78,14 @@ async function upload<T>(path: string, file: Blob, headers: Record<string, strin
 }
 export const bindImage = (id: string, target: Target, file: Blob) =>
   upload<WorkDetail>(`${work(id)}/bind`, file, {'X-Target': encodeURIComponent(JSON.stringify(target))});
+// Photo libraries (Pexels, Pixabay) searched for backgrounds; a chosen hit is downloaded and bound on the server.
+export interface ImageHit {
+  source: 'pexels' | 'pixabay'; key: string; id: string; name: string; author: string; license: string; url: string;
+  width: number; height: number; thumb: string; download: string;
+}
+export const searchImages = (query: string, orientation: 'landscape' | 'portrait', sources?: string[]) =>
+  call<{results: ImageHit[]; notes: string[]}>('/images/search', {method: 'POST', body: JSON.stringify({query, orientation, sources})});
+export const bindImageHit = (id: string, target: Target, hit: ImageHit) => post<WorkDetail>(id, 'image/fetch', {target, hit});
 export const importPackage = (file: File) => upload<{id: string}>('/works/import', file, {'X-File-Name': encodeURIComponent(file.name)});
 
 // Image service presets, the work's scheme and its generation queue (A7).
@@ -100,3 +117,89 @@ export const startQueue = (id: string, keys: string[], task: 'draw' | 'cutout' =
 export const controlQueue = (id: string, action: 'pause' | 'resume' | 'retry' | 'cancel' | 'close') => post<{queue: QueueState | null}>(id, `queue/${action}`, {});
 export const queueState = (id: string) => call<{queue: QueueState | null}>(`${work(id)}/queue`);
 export const restoreImage = (id: string, key: string, imageId: string) => post<WorkDetail>(id, 'restore', {key, imageId});
+
+// The voice library (voices.json) and speech services for previews, lookup and design; keys stay in the user's folder.
+export type VoiceProvider = 'fish' | 'elevenlabs' | 'gemini';
+export interface LibraryVoice {provider: VoiceProvider; ref: string; label: string; tags: string[]; origin: 'public' | 'designed'; lang?: string; note?: string}
+export interface VoiceLibrary {
+  version: 1; fish: {model: string}; elevenlabs: {model: string}; gemini: {model: string}; voices: LibraryVoice[];
+  secrets?: {fish: boolean; elevenlabs: boolean; gemini: boolean};
+}
+export const loadVoices = () => call<VoiceLibrary>('/voices');
+export const saveVoices = (library: VoiceLibrary) =>
+  call<VoiceLibrary>('/voices', {method: 'PUT', body: JSON.stringify({
+    version: 1, fish: library.fish, elevenlabs: library.elevenlabs, gemini: library.gemini, voices: library.voices,
+  })});
+const fishCall = <T>(action: string, body: unknown = {}) => call<T>(`/voices/fish/${action}`, {method: 'POST', body: JSON.stringify(body)});
+export const fishBalance = () => fishCall<{credit: number; freeCredit: boolean | null}>('balance');
+export interface FoundVoice {ref: string; title: string; tags: string[]; mine: boolean; lang?: string; languageCode?: string; gender?: string; description?: string}
+export const fishLookup = (ref: string) => fishCall<FoundVoice>('lookup', {ref});
+export const elevenLookup = (ref: string) =>
+  call<FoundVoice>('/voices/elevenlabs/lookup', {method: 'POST', body: JSON.stringify({ref})});
+export const geminiLookup = (ref: string) =>
+  call<FoundVoice>('/voices/gemini/lookup', {method: 'POST', body: JSON.stringify({ref})});
+export const geminiList = (filter: {lang?: string; gender?: string; pitch?: string; search?: string; pageSize?: number; pageToken?: string}) =>
+  call<{voices: FoundVoice[]; nextPageToken: string}>('/voices/gemini/list', {method: 'POST', body: JSON.stringify(filter)});
+export const fishDesign = (instruction: string, text: string, language?: string) =>
+  fishCall<{candidates: string[]}>('design', {instruction, text: text || undefined, language});
+export const fishCreate = (label: string, audio: string, text: string, tags: string[], lang?: string, note?: string) =>
+  fishCall<{voice: LibraryVoice; library: VoiceLibrary}>('create', {label, audio, text, tags, lang, note});
+// A line in a library voice, as playable audio.
+export async function fishSpeak(ref: string, text: string, language?: string, provider: VoiceProvider = 'fish'): Promise<Blob> {
+  const response = await fetch(`/api/manager/voices/${provider}/speak`,
+    {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ref, text, language})});
+  if (!response.ok) throw new Error((await response.json().catch(() => null))?.error ?? `HTTP ${response.status}`);
+  return response.blob();
+}
+
+// Sound effect services (sound-services.json): Freesound's licences and the local sound folder; the token stays in the user's folder.
+export interface SoundServices {
+  version: 1; freesound: {licenses: string[]}; local: {folder: string}; music: {folder: string};
+  secrets?: {freesound: boolean; elevenlabs: boolean}; localCount?: number | string | null; musicCount?: number | string | null;
+}
+export const loadSoundServices = () => call<SoundServices>('/sound-services');
+export const saveSoundServices = (services: SoundServices) =>
+  call<SoundServices>('/sound-services', {method: 'PUT', body: JSON.stringify({version: 1, freesound: services.freesound, local: services.local, music: services.music})});
+export interface SoundHit {
+  source: 'freesound' | 'local'; key: string; name: string; author: string; license: string; duration: number | null; preview: string;
+  url?: string; path?: string; id?: number; library?: 'sounds' | 'music'; notes?: string;
+}
+export const searchSounds = (query: string, maxDuration?: number, kind: AudioKind = 'sounds') =>
+  call<{results: SoundHit[]; notes: string[]}>('/sounds/search', {method: 'POST', body: JSON.stringify({query, maxDuration, kind})});
+
+// A work's music and sounds, with the file each has.
+export interface BoundAudio {fileId: string; name: string; type: string; source?: Record<string, string>}
+export interface SoundDefinition {id: string; name: string; kind: 'ambience' | 'effect'; query?: string; prompt?: string}
+export interface WorkAudio {
+  music: {tracks: {id: string; name: string; prompt?: string}[]; cues: {from: string; track: string | null}[]} | null;
+  sounds: {sounds: SoundDefinition[]; places: Record<string, string>; blocks: Record<string, string | null>; effects: {at: string; sound: string; phase: string}[]} | null;
+  bound: {tracks: Record<string, BoundAudio>; sounds: Record<string, BoundAudio>};
+  locations: {id: string; label: string}[];
+  log: MusicLogEntry[];
+}
+export type AudioKind = 'music' | 'sounds';
+export const audioUrl = (id: string, fileId: string) => `/api/manager${work(id)}/audio/${fileId}`;
+export type GeneratedSound = {source: 'generate'; preset: string; name: string; prompt: string; seconds?: number; loop?: boolean};
+export const fetchAudio = (id: string, kind: AudioKind, entry: string, from: SoundHit | GeneratedSound) => post<WorkDetail>(id, 'audio/fetch', {kind, id: entry, from});
+export const removeAudio = (id: string, kind: AudioKind, entry: string) => post<WorkDetail>(id, 'audio/remove', {kind, id: entry});
+export const uploadAudio = (id: string, kind: AudioKind, entry: string, file: Blob, source: Record<string, string>) =>
+  upload<WorkDetail>(`${work(id)}/audio/upload`, file, {'X-Kind': kind, 'X-Id': encodeURIComponent(entry), 'X-Source': encodeURIComponent(JSON.stringify(source))});
+export const editSounds = (id: string, change: {edit?: {id: string; name?: string; query?: string}; add?: SoundDefinition[]; places?: Record<string, string | null>}) =>
+  post<WorkDetail>(id, 'sounds', change);
+
+// Audio generation presets for music and effects (music-presets.json) and a work's music generation.
+export type MusicField = 'prompt' | 'lyrics' | 'duration' | 'seed';
+export type AudioUse = 'music' | 'effects';
+export interface MusicPreset {
+  id: string; source: 'elevenlabs' | 'comfyui' | 'lyria'; uses: AudioUse[]; custom: string; seconds: number;
+  elevenlabs?: {model: string; instrumental: boolean; influence: number};
+  lyria?: {model: string; instrumental: boolean};
+  comfyui?: {url: string; workflow: string | null; map: Partial<Record<MusicField, [string, string]>>};
+}
+export interface MusicPresetFile {version: 1; presets: MusicPreset[]; secrets?: {elevenlabs: boolean; comfyui: boolean; gemini: boolean}}
+export const loadMusicPresets = () => call<MusicPresetFile>('/music-presets');
+export const saveMusicPresets = (file: MusicPresetFile) => call<MusicPresetFile>('/music-presets', {method: 'PUT', body: JSON.stringify({version: 1, presets: file.presets})});
+export interface MusicLogEntry {track: string; file: string; preset: string; prompt: string; seconds: number; seed: number | null; time: string}
+export const editTrack = (id: string, track: string, change: {name?: string; prompt?: string}) => post<WorkDetail>(id, 'music/edit', {id: track, ...change});
+export const generateMusic = (id: string, track: string, preset: string, prompt?: string) => post<WorkDetail>(id, 'music/generate', {track, preset, prompt});
+export const restoreMusic = (id: string, track: string, file: string) => post<WorkDetail>(id, 'music/restore', {id: track, file});

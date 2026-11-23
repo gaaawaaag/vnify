@@ -84,6 +84,17 @@ try {
   await put('cover-project.json',{...current,design:'design.json',images:[...current.images,{file:'cg.png',purpose:'title-card',width:1,height:1}]});
   run('direct-vn.mjs','cover-project.json','--out','cover.vn.zip');
   assert.ok((await importStoryPackage(new Blob([await readFile(path.join(dir,'cover.vn.zip'))]))).backgrounds.bindings.titleCard);
+  // With the end card switched on, the design adds its description; the picture is registered like the cover.
+  await put('ending-design.json',{...JSON.parse(await readFile(path.join(dir,'design.json'),'utf8')),endCard:{prompt:'DESIGNED_ENDING'}});
+  const ending={...current,options:{...current.options,endCard:true},design:'ending-design.json'};
+  await put('ending-project.json',ending);
+  run('direct-vn.mjs','ending-project.json','--jobs','--out','ending-jobs.json');
+  const endJob=JSON.parse(await readFile(path.join(dir,'ending-jobs.json'),'utf8')).jobs.find(t=>t.purpose==='end-card');
+  assert.ok(endJob.prompt.includes('DESIGNED_ENDING')&&endJob.prompt.includes(styles.character));
+  await put('ending-project.json',{...ending,images:[...current.images,{file:'cg.png',purpose:'end-card',width:1,height:1}]});
+  run('direct-vn.mjs','ending-project.json','--out','ending.vn.zip');
+  const endPacked=await importStoryPackage(new Blob([await readFile(path.join(dir,'ending.vn.zip'))]));
+  assert.ok(endPacked.backgrounds.bindings.endCard);assert.match(endPacked.raw,/^\/\/ @vn-end-card \{"prompt":"DESIGNED_ENDING"\}$/m);
   const packedProject={...current,input:'story.vn.zip',directors:{}};delete packedProject.images;await put('packed-project.json',packedProject);
   run('direct-vn.mjs','packed-project.json','--jobs','--out','remaining.json');
   assert.deepEqual(JSON.parse(await readFile(path.join(dir,'remaining.json'),'utf8')).jobs.map(t=>t.purpose),['background','standing']);
@@ -113,6 +124,7 @@ try {
   const extra=(await importStoryPackage(new Blob([await readFile(path.join(dir,'epub/directed.vn.zip'))]))).extra;
   assert.deepEqual(extra.items,[{title:'序',paragraphs:['作者的话。']}]);assert.deepEqual(extra.illustrations.map(i=>i.after),['p000003']);
   // Asset manager: the page (when built) and its routes over this production folder.
+  const checks=['编号','跨批原注','资料合并','严格校验','v11 请求/双画风/单图任务','已有导演稿重读不重做','v11 文件续跑','CG 绑定与包往返','缺图续跑','纯色背景去背','EPUB 编号与 Extra 作品包往返','资产管理器页面与接口'];
   const {startManagerServer}=await import('../src/server/manager-server.mjs');
   const server=await startManagerServer(0,{production:dir});
   try{
@@ -121,5 +133,20 @@ try {
     if(built||manifest?.files.some(f=>f.path==='dist-manager/index.html')){const page=await fetch(`${base}/manager/`);assert.equal(page.status,200);assert.match(await page.text(),/<div id="root">/);}
     const presets=await fetch(`${base}/api/manager/presets`);assert.equal(presets.status,200);assert.ok((await presets.json()).presets);
   }finally{server.close();}
-  console.log(JSON.stringify({ok:true,verifiedFiles:manifest?.files.length??0,checks:['编号','跨批原注','资料合并','严格校验','v11 请求/双画风/单图任务','已有导演稿重读不重做','v11 文件续跑','CG 绑定与包往返','缺图续跑','纯色背景去背','EPUB 编号与 Extra 作品包往返','资产管理器页面与接口'],artifacts:dir},null,2));
+  // Full local bundle (--with-reader): verify the combined bookshelf + player + asset manager server.
+  let hasReader=false;
+  try{await access(path.join(root,'index.html'));hasReader=true;}catch{}
+  if(hasReader){
+    const {startServer}=await import('../src/server/app.mjs');
+    const fullServer=await startServer(0,{dataDir:path.join(dir,'data'),production:dir});
+    try{
+      const base=`http://127.0.0.1:${fullServer.address().port}`;
+      const home=await fetch(`${base}/`);assert.equal(home.status,200);assert.match(await home.text(),/vnify/);
+      const shelf=await fetch(`${base}/api/library`);assert.equal(shelf.status,200);assert.ok(Array.isArray((await shelf.json()).books));
+      const presets=await fetch(`${base}/api/manager/presets`);assert.equal(presets.status,200);assert.ok((await presets.json()).presets);
+      const sample=await fetch(`${base}/examples/rainy-visit.vn.txt`);assert.equal(sample.status,200);
+      checks.push('本地书架与阅读器服务');
+    }finally{fullServer.close();}
+  }
+  console.log(JSON.stringify({ok:true,verifiedFiles:manifest?.files.length??0,checks,artifacts:dir},null,2));
 }catch(e){console.error(e);console.error(`保留检查材料：${dir}`);process.exitCode=1;}

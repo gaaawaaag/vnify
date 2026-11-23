@@ -4,7 +4,7 @@
 /** @param {ImageTask} task */
 const imageKeys=task=>task.refs?.map(r=>`${task.purpose}:${r.scope}:${r.id}`)??[`${task.purpose}:${task.characterId}${task.variantId?`:${task.variantId}`:''}`];
 /** @param {ImageTask} task */
-const keys=task=>task.purpose==='title-card'?['title-card']:imageKeys(task);
+const keys=task=>task.purpose==='title-card'||task.purpose==='end-card'?[task.purpose]:imageKeys(task);
 export const imageTaskIds=keys;
 
 /** @param {unknown} [value] @returns {Map<string,string>} */

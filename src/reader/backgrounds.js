@@ -15,7 +15,7 @@ const SCOPES = ['ambients','locations','cgs','cutIns','variants'];
 const locationVariant=(story,id)=>story.entities.get(story.variantArt?.definitions.get(id)?.entityId)?.kind==='location';
 /** @param {string} bookId @returns {Backgrounds} */
 export function emptyBackgrounds(bookId) {
-  return { version:BACKGROUNDS_VERSION, bookId, bindings:{ book:null, titleCard:null, ambients:{}, locations:{}, cgs:{}, cutIns:{}, variants:{} }, images:{} };
+  return { version:BACKGROUNDS_VERSION, bookId, bindings:{ book:null, titleCard:null, endCard:null, ambients:{}, locations:{}, cgs:{}, cutIns:{}, variants:{} }, images:{} };
 }
 /** @param {Backgrounds|null} data @param {Unit} unit @param {Story|null} [story] */
 export function resolveBackground(data, unit, story=null) {
@@ -73,7 +73,7 @@ export async function inspectImage(blob) {
 }
 /** @param {Backgrounds} data @returns {Backgrounds} */
 export function pruneBackgrounds(data) {
-  const used=new Set([data.bindings.book,data.bindings.titleCard,...SCOPES.flatMap(scope=>Object.values(data.bindings[scope]))]);
+  const used=new Set([data.bindings.book,data.bindings.titleCard,data.bindings.endCard,...SCOPES.flatMap(scope=>Object.values(data.bindings[scope]))]);
   return {...data,images:Object.fromEntries(Object.entries(data.images).filter(([id])=>used.has(id)))};
 }
 /* Shared raster metadata validation; decoding and content hashes are checked at ingestion.
@@ -110,8 +110,9 @@ export function validateBackgrounds(data,story) {
     cutIns:key=>story.cutInArt?.images.has(key),
     variants:key=>locationVariant(story,key),
   };
-  // The title card is the opening image and future shelf cover, never a reading background.
-  const bindings=/** @type {Backgrounds['bindings']} */({book:reference(data.bindings.book),titleCard:reference(data.bindings.titleCard??null)});
+  // The title card opens the book and the end card closes it (the title card stands in when it has none); neither is a reading background.
+  const bindings=/** @type {Backgrounds['bindings']} */({book:reference(data.bindings.book),titleCard:reference(data.bindings.titleCard??null),
+    endCard:reference(data.bindings.endCard??null)});
   for(const scope of SCOPES) {
     bindings[scope]={};
     for(const [key,id] of Object.entries(data.bindings[scope])) {

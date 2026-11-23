@@ -15,6 +15,7 @@ import { createDisclosureTracker } from '../reader/reader-presentation.js';
 import { createBackgroundPanel } from './background-panel.js';
 import {createGalleryPanel} from './gallery-panel.js';
 import {createReferencePanel} from './reference-panel.js';
+import {createCreditsPanel} from './credits-panel.js';
 import {createSettingsSample} from './settings-panel.js';
 import {attachScrollMark} from './scroll-mark.js';
 import { linkPackage } from '../reader/story-package.js';
@@ -24,6 +25,8 @@ import {DEFAULT_FLIP} from '../reader/character-images.js';
 import {createDialogueAvatar,createStandingStage} from './dialogue-avatar.js';
 import {stageAt} from '../reader/staging.js';
 import {createTitleScreen} from './title-screen.js';
+import {createEndCard} from './end-card.js';
+import {createShelfStats} from './shelf-stats.js';
 import {createExtraPanel} from './extra-panel.js';
 import {createLibraryClient,libraryKey} from '../reader/library-client.js';
 import {createReadingClock} from '../reader/reading-time.js';
@@ -32,6 +35,13 @@ import {createHomePage} from './home-page.js';
 import {createLanguageMenu} from './shelf-language.js';
 import {filesOfArchive,filesOfFolder,filesOfText,inspectFiles,uploadBook} from './book-import.js';
 import {t,listText,setTextLanguage,translateInterface,typingInterval,readingMs} from '../reader/player-text.js';
+import {speechOf,deliveryOf,speechLang,castFor,servicesOf,CLOUD_SERVICES} from '../reader/speech.js';
+import {createVoicePlayer} from './voice-player.js';
+import {createFishVoice} from './fish-voice.js';
+import {createMusicPlayer} from './music-player.js';
+import {createUiSounds} from './ui-sounds.js';
+import {musicAt,nextMusic} from '../core/music.js';
+import {ambienceAt,effectsAt,upcomingEffects} from '../core/sounds.js';
 const reader=new ReaderState();
 const readerStore=createReaderStore();
 const library=createLibraryClient();
@@ -49,6 +59,10 @@ const advanceHint=$('advance-hint');
 let timer, autoTimer, toastTimer, saveTimer;
 let saved=null, textRuns=[], introTimer, introVersion=0, titleVersion=0;
 const titleScreen=createTitleScreen();
+const endCard=createEndCard({
+  onSave:value=>library.saveReview(shelfKey,deviceId,value),
+  onBack:()=>{},onHome:()=>goHome(),toast:message=>toast(message),
+});
 let displayedUnitId=null,documentSaveTimer;
 const paperDocument = () => reader.isDocument && reader.story.units[reader.index].block.style !== 'verse';
 const mentionColor = id => paperDocument()
@@ -99,16 +113,102 @@ function save(immediate=false) {
  * go to the shelf every minute and when the page is hidden or the reader closed. A failed save is tried again later,
  * except when the shelf refuses it (the book was removed). */
 function noteReading() {
-  if(shelfKey&&reader.story&&!$('reader').hidden&&$('title-screen').hidden&&!document.hidden)readingClock.activity(shelfKey,reader.index,opened?.version);
+  if(shelfKey&&reader.story&&!$('reader').hidden&&$('title-screen').hidden&&$('end-card').hidden&&!document.hidden)readingClock.activity(shelfKey,reader.index,opened?.version);
 }
 function saveSessions() {
-  for(const item of readingClock.take()) {
-    library.saveSession(item.key,deviceId,item.session).catch(error=>{if(!(error.status>=400&&error.status<500))readingClock.restore([item]);});
-  }
+  return Promise.all(readingClock.take().map(item=>
+    library.saveSession(item.key,deviceId,item.session).catch(error=>{if(!(error.status>=400&&error.status<500))readingClock.restore([item]);})));
 }
 setInterval(saveSessions,60_000);
 for(const type of ['pointerdown','keydown','wheel'])window.addEventListener(type,noteReading,{capture:true,passive:true});
 function stopTimers() { clearTimeout(timer); clearTimeout(autoTimer); endIntro(); }
+/* Reading aloud (docs/dev/audio.md): a line is spoken once when it is shown, and leaving it stops the voice. With auto
+ * play on, a spoken line moves on a moment after its voice ends; a line without a voice waits the set delay. */
+const voicePlayer=createVoicePlayer(),VOICE_GAP=700;
+const voiceState={unitId:null,state:null};
+// The music dips while a voice speaks; only the latest line lifts it again.
+let duckToken=0;
+// Each speech service speaks through its own pass-on route on the shelf.
+const markWaiting=waiting=>$('voice-toggle').classList.toggle('is-waiting',waiting);
+const cloudVoices=Object.fromEntries(CLOUD_SERVICES.map(service=>[service,createFishVoice({endpoint:`/api/tts/${service}`,
+  clientSpeed:service==='gemini',onWaiting:markWaiting})]));
+const stopCloud=()=>{for(const player of Object.values(cloudVoices))player.stop();};
+// A service's voice speaks when this browser has its key; a failure is shown once and the line falls back to the
+// browser voice.
+const shownSpeechErrors=new Set();
+const GEMINI_THOUGHT_STYLE='soft, quiet internal monologue';
+function deliveryAt(line) {
+  const tts=readerStore.readTts(),lang=reader.story.book.lang;
+  const cast=castFor(reader.story.voices,null);
+  const delivery=deliveryOf(line,cast,voicePlayer.voices(),lang,{fish:!!tts.fish.key,elevenlabs:!!tts.elevenlabs.key,gemini:!!tts.gemini.key});
+  const service=delivery.cloud&&tts[delivery.cloud.provider];
+  const style=delivery.cloud?.provider==='gemini'&&line.role==='thought'?GEMINI_THOUGHT_STYLE:undefined;
+  const cloud=delivery.cloud&&{provider:delivery.cloud.provider,
+    options:{voice:delivery.cloud.ref,key:service.key,model:service.model,speed:settings.voiceRate,language:speechLang(lang),...(style?{style}:{})}};
+  return {...delivery,cloud,lang};
+}
+function speakLine(line) {
+  const own=++duckToken,{voice,cloud,pitch,volume,lang}=deliveryAt(line);
+  const level=volume*settings.voiceVolume/100*settings.masterVolume/100;
+  const browser=()=>voicePlayer.speak(line.text,{voice,lang:speechLang(lang),rate:settings.voiceRate,pitch,volume:level});
+  musicPlayer.duck(true);
+  voicePlayer.stop();stopCloud();
+  const spoken=!cloud?browser():cloudVoices[cloud.provider].speak(line.text,cloud.options,level).then(result=>{
+    if(typeof result==='string')return result;
+    const message=t('朗读失败：{m}',{m:result.message});
+    if(!shownSpeechErrors.has(message)){shownSpeechErrors.add(message);toast(message);}
+    return own===duckToken?browser():'cancel';
+  });
+  void spoken.then(()=>{if(own===duckToken)musicPlayer.duck(false);});
+  return spoken;
+}
+// The next spoken line in a service's voice is asked for while this one plays.
+function prefetchVoice() {
+  const next=reader.story?.units[reader.index+1],line=next&&speechOf(next,settings.voice);
+  const cloud=line&&deliveryAt(line).cloud;
+  if(cloud)cloudVoices[cloud.provider].prefetch(line.text,cloud.options);
+}
+/* Music follows the position (docs/dev/audio.md): the track of the last cue at or before the line, from the open
+ * package's audio; a track without a file, or no book, is silence. The next track ahead starts loading early. */
+const musicPlayer=createMusicPlayer();
+// Interface sounds (src/ui/ui-sounds.js) belong to the player: only while the reader is on screen.
+const uiSounds=createUiSounds({mixer:musicPlayer,isActive:()=>!$('reader').hidden});
+const trackSource=track=>{const audio=opened?.audio,id=track&&audio?.bindings.tracks[track];return id?audio.files[id]?.src??null:null;};
+// Ambience follows the position the same way (the block's own, else its place's); effects play once, reading forward.
+const soundSource=sound=>{const audio=opened?.audio,id=sound&&audio?.bindings.sounds?.[sound];return id?audio.files[id]?.src??null:null;};
+function syncMusic() {
+  if(!reader.story||$('reader').hidden){musicPlayer.play(null);musicPlayer.playAmbience(null);return;}
+  musicPlayer.play(trackSource(musicAt(reader.story,reader.index)));
+  musicPlayer.playAmbience(soundSource(ambienceAt(reader.story,reader.index)));
+  musicPlayer.preload(trackSource(nextMusic(reader.story,reader.index)));
+  for(const sound of upcomingEffects(reader.story,reader.index))musicPlayer.preloadEffect(soundSource(sound));
+}
+// The line reached by reading forward, whose effects are still to play: on entering it, and once its text is shown.
+let effectsDue=null;
+// Background changes animate only on reading forward; going back, jumping and re-rendering change them at once.
+let motion=false;
+function playEffects(phase) {
+  if(!effectsDue||effectsDue.index!==reader.index||!effectsDue[phase]||!reader.story)return;
+  effectsDue[phase]=false;
+  for(const cue of effectsAt(reader.story,reader.index,phase)) {
+    const src=soundSource(cue.sound);
+    if(src)musicPlayer.effect(src,cue.volume??1);
+  }
+}
+function voiceUnit() {
+  const u=reader.story?.units[reader.index];
+  if(!u||voiceState.unitId===u.id)return;
+  voicePlayer.stop();stopCloud();voiceState.unitId=u.id;voiceState.state=null;
+  const line=speechOf(u,settings.voice);
+  if(!line)return;
+  voiceState.state='speaking';prefetchVoice();
+  void speakLine(line).then(result=>{
+    if(voiceState.unitId!==u.id||voiceState.state!=='speaking')return;
+    voiceState.state=result==='end'?'done':null;
+    if(reader.textComplete)scheduleAuto();
+  });
+}
+function stopVoice() { voicePlayer.stop();stopCloud();voiceState.unitId=null;voiceState.state=null;duckToken++;musicPlayer.duck(false); }
 function setAuto(value) {
   reader.auto = value; $('auto').setAttribute('aria-pressed', String(reader.auto));
   // While playing on its own, the continue mark circles instead of pointing down.
@@ -119,13 +219,15 @@ function scheduleAuto() {
   clearTimeout(autoTimer);
   if (characterHover.visible || !reader.auto || !reader.story || reader.autoWaiting || reader.intro || document.hidden || document.querySelector('dialog[open]')) return;
   if (reader.index === reader.story.units.length - 1) { setAuto(false); return; }
+  const voiced=voiceState.unitId===reader.story.units[reader.index].id?voiceState.state:null;
+  if (voiced === 'speaking') return;
   const reading = settings.speed === 0 ? readingMs(reader.glyphs.length) : 0;
-  autoTimer = setTimeout(() => move(1), settings.delay * 1000 + reading);
+  autoTimer = setTimeout(() => move(1), voiced === 'done' ? VOICE_GAP : settings.delay * 1000 + reading);
 }
 function typeStep() {
   reader.typeStep(); paintText();
   if (reader.visible < reader.glyphs.length) timer = setTimeout(typeStep, typingInterval(settings.speed));
-  else scheduleAuto();
+  else {playEffects('shown');scheduleAuto();}
 }
 function paintText() {
   let remaining = reader.visible;
@@ -150,21 +252,24 @@ function endIntro() {
   syncContext();
 }
 function startText() {
-  endIntro();
-  void backgroundPanel.render({scope:'scene',animate:settings.effects});
+  endIntro();voiceUnit();playEffects('enter');
+  void backgroundPanel.render({scope:'scene',animate:motion});
   if(reader.isDocument){$('reading-body').scrollTop=reader.documentScrollTop;completeText();}
   else if (settings.speed) typeStep(); else completeText();
 }
-function completeText() { clearTimeout(timer); endIntro();void backgroundPanel.render({scope:'scene',animate:settings.effects});reader.completeText(); paintText(); scheduleAuto(); }
+function completeText() {
+  clearTimeout(timer); endIntro();void backgroundPanel.render({scope:'scene',animate:motion});reader.completeText(); paintText();
+  playEffects('shown');scheduleAuto();
+}
 async function playIntro() {
   const token=++introVersion,intro=reader.intro,u=reader.story.units[reader.index];
   clearTimeout(introTimer);
   $('scene-intro').hidden=$('chapter-intro').hidden=true;syncContext();
   $('separator-intro').hidden=intro.kind!=='separator'||!settings.effects;
-  await backgroundPanel.render({scope:intro.kind==='separator'?'chapter':'scene',chapterId:intro.chapterId,animate:settings.effects});
+  await backgroundPanel.render({scope:intro.kind==='separator'?'chapter':'scene',chapterId:intro.chapterId,animate:motion});
   if(token!==introVersion||reader.intro!==intro)return;
   if(intro.kind==='chapter') {
-    $('chapter-intro').hidden=false;
+    $('chapter-intro').hidden=false;uiSounds.chapter(intro);
     $('chapter-kicker').textContent=intro.kicker;$('chapter-kicker').hidden=!intro.kicker;
     $('chapter-name').textContent=intro.title;
     $('chapter-detail').textContent=u.block.kind==='scene'?[u.block.title||u.location,u.block.time,settings.effects?{memory:t('回忆'),dream:t('梦境')}[u.effect]:''].filter(Boolean).join(' · '):'';
@@ -187,7 +292,11 @@ function render(mode = 'forward', previousIndex = null) {
   stopTimers(); if (!reader.story) return;
   clearNotice(); disclosures.begin(mode);
   const {unit:u,runs:displayRuns,retainedUnits:authoredPage}=reader.beginUnit(mode,previousIndex);
+  // Effects play only when a line is reached by reading forward, never on going back, jumping or re-rendering.
+  if(mode==='forward')effectsDue={index:reader.index,enter:true,shown:true};
+  else if(effectsDue?.index!==reader.index)effectsDue=null;
   const instant=!['forward','start'].includes(mode);
+  motion=settings.effects&&!instant;
   $('welcome').hidden = true; $('reader').hidden = false;
   $('book-title').textContent = reader.story.book.title; $('chapter-title').textContent = u.chapter.title;
   $('context-place').textContent=u.block.title || u.location || '';
@@ -224,9 +333,9 @@ function render(mode = 'forward', previousIndex = null) {
   syncContext();
   displayedUnitId=u.id;
   $('reading-body').scrollTop=reader.documentScrollTop;
-  if (reader.intro) void playIntro();
-  else {void backgroundPanel.render({scope:'scene',animate:settings.effects});if(settings.speed&&!instant&&!reader.isDocument)typeStep();else completeText();}
-  preloadAhead();
+  if (reader.intro) {if(voiceState.unitId!==u.id)stopVoice();void playIntro();}
+  else {voiceUnit();playEffects('enter');void backgroundPanel.render({scope:'scene',animate:motion});if(settings.speed&&!instant&&!reader.isDocument)typeStep();else completeText();}
+  preloadAhead();syncMusic();
   save();
 }
 // The next lines' images start loading now: backgrounds, CG and Cut-ins, and the portraits of who speaks.
@@ -298,18 +407,44 @@ function move(delta) {
   if(action.kind==='intro'){advanceIntro();return;}
   if(action.kind==='complete'){completeText();return;}
   if(action.kind==='end'){
-    if(delta>0){setAuto(false);toast(t(reader.bookComplete?'本篇已读完。可回看历史。':'本章已读完，后续章节尚未就绪。'));}
+    if(delta<=0)return;
+    setAuto(false);
+    if(reader.bookComplete&&shelfKey)void openEnd();
+    else toast(t(reader.bookComplete?'本篇已读完。可回看历史。':'本章已读完，后续章节尚未就绪。'));
     return;
   }
   if(action.kind==='move')render(action.mode,action.previousIndex);
 }
 async function refreshShelf() {
   await shelf.refresh();
+  if(!$('shelf-stats').hidden)await shelfStats.load();
+}
+// The shelf heading and the moon tab switch the shelf area between the books and the reading statistics.
+function showStats(on) {
+  $('shelf').classList.toggle('is-stats',on);
+  $('shelf-stats').hidden=!on;$('stats-years').hidden=!on;
+  $('shelf-tab').setAttribute('aria-pressed',String(!on));$('stats-tab').setAttribute('aria-pressed',String(on));
+  if(on)void shelfStats.load();
+}
+$('shelf-tab').onclick=()=>showStats(false);
+$('stats-tab').onclick=()=>showStats(true);
+/* Moving on past the last unit of a finished book opens the end card at once; the reading time and dates follow once
+ * the position (which marks the book finished) and the open session have reached the shelf. */
+async function openEnd() {
+  if(endCard.active)return;
+  const story=reader.story,key=shelfKey,token=titleVersion;
+  readingClock.pause();
+  const picture=await backgroundPanel.endCard(story.book.id),cover=picture?null:extraPanel.cover(story.book.id);
+  if(token!==titleVersion||reader.story!==story)return;
+  void endCard.show({title:story.book.title,author:story.book.author,src:picture?.src??cover,own:!!picture?.own,animate:settings.effects});
+  await save(true);await saveSessions();
+  const record=await library.record(key).catch(()=>null);
+  if(token===titleVersion&&reader.story===story)endCard.setRecord(record);
 }
 function goHome() {
-  titleVersion++;titleScreen.cancel();
+  titleVersion++;titleScreen.cancel();endCard.close();
   readingClock.finish();saveSessions();
-  rememberScroll();const saving=save(true);characterHover.hide();setAuto(false); stopTimers();clearNotice();dialogueAvatar.clear();standingStage.clear();
+  rememberScroll();const saving=save(true);characterHover.hide();setAuto(false); stopTimers();stopVoice();musicPlayer.play(null);musicPlayer.playAmbience(null);clearNotice();dialogueAvatar.clear();standingStage.clear();
   $('reader').classList.remove('dialogue-hidden');$('reader').hidden = true; $('welcome').hidden = false;
   void saving.then(refreshShelf);
   void VNTheme.activateDefault();
@@ -380,6 +515,11 @@ const termsPanel=createReferencePanel({dialog:$('terms-dialog'),onOpen:pauseForP
     return nodes;
   }});
 $('open-terms').onclick=()=>termsPanel.open();
+// Credits: the package's record with what the text and the audio say; from the reading menu and the end card.
+const creditsPanel=createCreditsPanel({dialog:$('credits-dialog'),getBook:()=>reader.story?{story:reader.story,credits:opened?.credits??null,audio:opened?.audio??null}:null,
+  onOpen:()=>{if(!$('reader').hidden)pauseForPanel();},onClose:()=>{if(!$('reader').hidden)resumeAfterPanel();}});
+$('open-credits').onclick=()=>creditsPanel.open();
+$('end-card-credits').onclick=()=>creditsPanel.open();
 $('character-notice-button').onclick=event=>{event.stopPropagation();castPanel.open(noticePerson);};
 $('speaker').onclick=event=>{
   event.stopPropagation();
@@ -398,7 +538,7 @@ window.addEventListener('vn-theme-change',()=>{
 document.querySelectorAll('[data-close]').forEach(button => button.onclick = () => button.closest('dialog').close());
 // The open book's manifests (images by address), kept so the same book reopens from memory.
 let opened=null;
-function importText(text, restored, {backgrounds,characterImages,extra,version}) {
+function importText(text, restored, {backgrounds,characterImages,extra,audio,credits,version}) {
   // Only an exactly unchanged file resumes: changed manuscripts start at the beginning.
   const previous=restored || (saved?.raw===text?saved:null);
   const work=prepareReading(text,{complete:previous?.complete!==false});
@@ -407,10 +547,12 @@ function importText(text, restored, {backgrounds,characterImages,extra,version})
   shelfKey=libraryKey(parsed.book.id);
   if(previous?.savedAt)progressStamps.set(shelfKey,previous.savedAt);
   displayedUnitId=null;
-  opened={backgrounds,characterImages,extra,version};if(replacedKey===libraryKey(parsed.book.id))replacedKey=null;
+  opened={backgrounds,characterImages,extra,audio,credits,version};if(replacedKey===libraryKey(parsed.book.id))replacedKey=null;
   characterImageSession.setStory(parsed,characterImages);
+  standingStage.setCast(characterImageSession.looks().map(look=>({...look,stature:statureOf(parsed,look.characterId,look.variantId)})));
   backgroundPanel.setStory(parsed,backgrounds);
   extraPanel.setBook(parsed.book.id,extra);
+  $('open-credits').hidden=$('end-card-credits').hidden=!creditsPanel.has();
   $('import-dialog').close();
   void openTitle(parsed,Number.isInteger(previous?.index)?'restore':'start');
 }
@@ -419,8 +561,8 @@ const VNTheme=globalThis.VNTheme;
 const readerTheme=()=>reader.story?VNTheme.activate(VNTheme.global()):VNTheme.activateDefault();
 // Every entry from home passes through the title screen; reading starts once it closes.
 /* The player's interface, page language (fonts, hyphenation) and typing pace follow the open work's language; home is Chinese. */
-const PLAYER_ROOTS=['reader','title-screen','gallery-dialog','cast-dialog','settings-dialog','cut-in-viewer','terms-dialog','appendix-dialog'];
-const SHELF_ROOTS=['home-header','welcome','shelf-settings-dialog','shelf-dialog','book-info-dialog','import-dialog'];
+const PLAYER_ROOTS=['reader','title-screen','end-card','gallery-dialog','cast-dialog','settings-dialog','cut-in-viewer','terms-dialog','appendix-dialog','credits-dialog'];
+const SHELF_ROOTS=['home-header','welcome','shelf-settings-dialog','shelf-dialog','book-info-dialog','review-dialog','import-dialog'];
 // The interface language: the open work's, or the shelf's chosen one on the shelf.
 function setPlayerLanguage(lang) {
   setTextLanguage(lang);
@@ -428,7 +570,7 @@ function setPlayerLanguage(lang) {
   translateInterface([...SHELF_ROOTS,...PLAYER_ROOTS].map($));
   window.dispatchEvent(new Event('vn-language-change'));
   applySettings();
-  shelf.relabel();homePage.relabel();
+  shelf.relabel();homePage.relabel();shelfStats.relabel();
 }
 async function openTitle(story,mode) {
   const token=++titleVersion;
@@ -436,11 +578,26 @@ async function openTitle(story,mode) {
   setPlayerLanguage(story.book.lang);
   await VNTheme.activate(VNTheme.global());
   if(token!==titleVersion)return;
-  // Without a title card, the original book cover is shown whole.
+  // Without a title card, the original book cover stands in.
   const card=await backgroundPanel.titleCard(story.book.id),cover=card?null:extraPanel.cover(story.book.id);
   if(token!==titleVersion)return;
-  await titleScreen.show({title:story.book.title,author:story.book.author,src:card??cover,contain:!!cover,animate:settings.effects});
-  if(token===titleVersion){render(mode);noteReading();}
+  const action=await titleScreen.show({title:story.book.title,author:story.book.author,blurb:story.blurb??null,src:card??cover,
+    state:titleState(mode),animate:settings.effects});
+  if(token!==titleVersion)return;
+  if(action==='restart'){reader.seek(0);render('start');}
+  else if(action==='end'){reader.seek(story.units.length-1);render('jump');void openEnd();}
+  else render(mode);
+  noteReading();
+}
+/* What the title screen offers: a finished book (as the shelf lists it) its finish and rating, a book read before where
+ * the reader was and when, a new one just the start. */
+function titleState(mode) {
+  const book=shelfKey?shelf.find(shelfKey):null;
+  if(book?.finishedAt)return {kind:'done',finishedAt:book.finishedAt,rating:book.rating??null};
+  if(mode!=='restore'||!reader.index)return {kind:'first'};
+  const count=reader.story.units.length;
+  return {kind:'back',chapter:reader.story.units[reader.index]?.chapter.title??'',percent:Math.min(100,Math.floor((reader.index+1)/count*100)),
+    savedAt:progressStamps.get(shelfKey)??book?.progress?.savedAt??null};
 }
 /* Every import puts the book on the shelf first and then opens it from there. The files are checked before anything
  * is uploaded; a book already on the shelf with another text is replaced after confirmation (its position goes with it). */
@@ -596,7 +753,7 @@ function backlogEntries() {
 }
 function seekTo(position,mode) {rememberScroll();const action=reader.seek(position,mode);render(action.mode,action.previousIndex);}
 const backlog=createBacklog({entries:backlogEntries,
-  canOpen:()=>!!reader.story&&!$('reader').hidden&&!reader.intro&&!titleScreen.active&&!document.querySelector('dialog[open]')
+  canOpen:()=>!!reader.story&&!$('reader').hidden&&!reader.intro&&!titleScreen.active&&!endCard.active&&!document.querySelector('dialog[open]')
     &&!$('reader').classList.contains('dialogue-hidden'),
   onOpen:()=>{characterHover.hide();setAuto(false);completeText();chrome.close();},
   onJump:index=>seekTo(index,'history')});
@@ -634,6 +791,12 @@ function applySettings() {
   document.documentElement.style.setProperty('--font-size', settings.font + 'px');
   reader.setSplit(settings.split);
   for (const id of ['font','speed','delay']) $(id).value = settings[id];
+  $('voice').value=settings.voice;$('voice-toggle').setAttribute('aria-pressed',String(settings.voice!=='off'));$('voice-volume').value=settings.voiceVolume;$('voice-rate').value=settings.voiceRate;
+  for(const id of ['master','music'])$(`${id}-volume`).value=settings[`${id}Volume`];
+  $('master-volume-value').textContent=`${settings.masterVolume}%`;$('music-volume-value').textContent=`${settings.musicVolume}%`;
+  for(const id of ['ambience','effects','ui']){$(`${id}-volume`).value=settings[`${id}Volume`];$(`${id}-volume-value`).textContent=`${settings[`${id}Volume`]}%`;}
+  musicPlayer.setVolumes({master:settings.masterVolume/100,music:settings.musicVolume/100,ambience:settings.ambienceVolume/100,effects:settings.effectsVolume/100,ui:settings.uiVolume/100});
+  $('voice-volume-value').textContent=`${settings.voiceVolume}%`;$('voice-rate-value').textContent=`${settings.voiceRate.toFixed(1)}×`;
   for (const button of document.querySelectorAll('#split [data-split]')) button.setAttribute('aria-pressed', String(button.dataset.split === settings.split));
   $('font-value').textContent = settings.font + 'px'; $('delay-value').textContent = t('{n} 秒',{n:settings.delay});
   try { readerStore.saveSettings(settings); } catch {}
@@ -641,6 +804,40 @@ function applySettings() {
   if (reader.story && !$('reader').hidden) render('settings');
 }
 for (const id of ['font','speed','delay']) $(id).oninput = () => { settings[id] = Number($(id).value); applySettings(); };
+// Turning reading aloud on or off speaks or silences the current line; volume and speed apply from the next line.
+$('voice').onchange=()=>setVoice($('voice').value);
+// The quick switch beside the history turns reading aloud off, or back on to what was last chosen; off asks for nothing.
+function setVoice(value) {
+  settings.voice=value;if(value!=='off')settings.voiceOn=value;
+  stopVoice();applySettings();renderFish();
+  if(reader.story&&!$('reader').hidden&&!reader.intro){voiceUnit();if(reader.textComplete)scheduleAuto();}
+}
+$('voice-toggle').onclick=()=>setVoice(settings.voice==='off'?settings.voiceOn:'off');
+$('voice-volume').oninput=()=>{settings.voiceVolume=Number($('voice-volume').value);applySettings();};
+for(const id of ['master','music','ambience','effects','ui'])$(`${id}-volume`).oninput=()=>{settings[`${id}Volume`]=Number($(`${id}-volume`).value);applySettings();};
+$('voice-rate').oninput=()=>{settings.voiceRate=Number($('voice-rate').value);applySettings();};
+/* Speech services in the settings: each one's key and model stay in this browser. The voices come from the book. */
+const SERVICE_NAMES={fish:'Fish Audio',elevenlabs:'ElevenLabs',gemini:'Gemini TTS'};
+function saveTts(service,change) {
+  const tts=readerStore.readTts();change(tts[service]);
+  try{readerStore.saveTts(tts);}catch{}
+  renderFish();
+}
+function renderFish() {
+  const tts=readerStore.readTts();
+  // The book's voices need keys this browser has not been given.
+  const missing=servicesOf(reader.story?.voices).filter(service=>!tts[service].key);
+  $('fish-needed').hidden=!missing.length;
+  $('fish-needed').textContent=t('这部作品用了 {services} 音色，填入 key 后才能听到',{services:missing.map(service=>SERVICE_NAMES[service]).join('、')});
+  for(const service of CLOUD_SERVICES) {
+    if(document.activeElement!==$(`${service}-key`))$(`${service}-key`).value=tts[service].key;
+    $(`${service}-model`).value=tts[service].model;
+  }
+}
+for(const service of CLOUD_SERVICES) {
+  $(`${service}-key`).onchange=()=>saveTts(service,f=>{f.key=$(`${service}-key`).value.trim();});
+  $(`${service}-model`).onchange=()=>saveTts(service,f=>{f.model=$(`${service}-model`).value;});
+}
 for (const button of document.querySelectorAll('#split [data-split]')) button.onclick = () => { settings.split = button.dataset.split; applySettings(); };
 // Development themes stay selectable only when already chosen (e.g. through VNTheme.setGlobal).
 function fillThemes() {
@@ -654,21 +851,23 @@ window.addEventListener('vn-theme-preferences',()=>{if(!$('reader').hidden||!$('
 // The settings cover the stage like the other panels; a sample line beside them follows the choices as they change.
 const settingsSample=createSettingsSample({getSettings:()=>settings});
 $('reader-settings').onclick = () => {
-  fillThemes();pauseForPanel();document.body.classList.add('stage-panel-open');
+  fillThemes();renderFish();pauseForPanel();document.body.classList.add('stage-panel-open');
   settingsSample.start($('reader-background'));$('settings-dialog').showModal();
 };
 $('settings-dialog').addEventListener('close',()=>{document.body.classList.remove('stage-panel-open');settingsSample.stop();resumeAfterPanel();});
 // The home page has its own settings for the shelf; reading settings open from inside a book.
 $('open-settings').onclick = () => {
   $('shelf-rows').value=String(shelf.settings.rows);$('shelf-original-cover').checked=shelf.settings.originalCover;
+  $('shelf-show-rating').checked=shelf.settings.showRating;
   openDialog('shelf-settings-dialog');
 };
 $('shelf-rows').onchange = () => shelf.setSettings({rows:Number($('shelf-rows').value)});
 $('shelf-original-cover').onchange = () => shelf.setSettings({originalCover:$('shelf-original-cover').checked});
+$('shelf-show-rating').onchange = () => shelf.setSettings({showRating:$('shelf-show-rating').checked});
 $('reader-home').onclick = goHome;
 
 document.addEventListener('keydown', event => {
-  if (!reader.story || $('reader').hidden || titleScreen.active || document.querySelector('dialog[open]') || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName) || event.ctrlKey || event.metaKey || event.altKey) return;
+  if (!reader.story || $('reader').hidden || titleScreen.active || endCard.active || document.querySelector('dialog[open]') || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName) || event.ctrlKey || event.metaKey || event.altKey) return;
   if (backlog.key(event)) return;
   if (event.key === ' ' && /^(BUTTON|A)$/.test(event.target.tagName)) return;
   if(reader.isDocument&&[' ','PageDown','PageUp','ArrowDown','ArrowUp','Home','End'].includes(event.key)) {
@@ -678,12 +877,13 @@ document.addEventListener('keydown', event => {
     else body.scrollBy({top:({'ArrowDown':60,'ArrowUp':-60,'PageUp':-body.clientHeight*.85}[event.key]??body.clientHeight*.85)});
     return;
   }
-  if ([' ','ArrowRight','ArrowLeft','h','H','a','A'].includes(event.key)) event.preventDefault();
+  if ([' ','ArrowRight','ArrowLeft','h','H','a','A','v','V'].includes(event.key)) event.preventDefault();
   if (event.repeat) return;
   if ([' ','ArrowRight'].includes(event.key)) move(1);
   if (event.key === 'ArrowLeft') { setAuto(false); move(-1); }
   if (event.key.toLowerCase() === 'h' || event.key === 'ArrowUp') { event.preventDefault(); backlog.open(); }
   if (event.key.toLowerCase() === 'a') setAuto(!reader.auto);
+  if (event.key.toLowerCase() === 'v') $('voice-toggle').click();
   if (event.key === 'ArrowDown' && !reader.intro) { event.preventDefault(); setDialogueHidden(true); }
 });
 document.addEventListener('visibilitychange', () => {
@@ -734,13 +934,23 @@ const backgroundPanel=createBackgroundPanel({onSceneChange:updateDialogueAvatar,
 const uploading=new Set();
 window.addEventListener('beforeunload',event=>{if(uploading.size){event.preventDefault();event.returnValue='';}});
 const homePage=createHomePage({client:library,onOpen:book=>void openFromShelf(book),toast,coverOf:book=>shelf.coverSource(book)});
-const shelf=createBookshelf({client:library,onOpen:book=>void openFromShelf(book),onBooks:homePage.show,toast,
+const shelf=createBookshelf({client:library,device:deviceId,onOpen:book=>void openFromShelf(book),onBooks:homePage.show,toast,
   onRemoved:key=>{if(shelfKey===key)shelfKey=null;}});
+const shelfStats=createShelfStats({client:library,root:$('shelf-stats'),years:$('stats-years'),toast,
+  onOpen:key=>{const book=shelf.find(key);if(book)void openFromShelf(book);}});
 const languageMenu=createLanguageMenu({onChange:setPlayerLanguage});
 // Earlier versions kept books and images in this browser; the shelf holds them now.
 for(const name of ['vn-reader-assets','vn-reader'])try{indexedDB.deleteDatabase(name);}catch{}
 // Panels and long text show a line-and-dot scroll mark instead of the native scrollbar.
 for(const node of document.querySelectorAll('#cast-body,#gallery-scroll,#reading-body,#backlog-scroll,#chapter-list,.reference-entries,.reference-detail,.settings-list'))attachScrollMark(node);
+// Interface sounds: panels, the reading menu, the history and the chapter list sound as they open and close; choosing
+// inside panels, the quick buttons beside the name and the end card sound "select". Turning the page stays silent.
+uiSounds.watch(document.querySelectorAll('dialog'),['open'],dialog=>dialog.open);
+uiSounds.watch([$('reader')],['class','hidden'],node=>!node.hidden&&!node.classList.contains('chrome-hidden'));
+uiSounds.watch([$('reader')],['class'],node=>node.classList.contains('backlog-open'));
+uiSounds.watch([$('chapter-list')],['hidden'],node=>!node.hidden);
+uiSounds.choices('dialog[open] button,#reader-quick button,#chapter-list button,#end-card button',
+  'dialog[open] input[type=range],dialog[open] input[type=checkbox],dialog[open] select');
 if(languageMenu.language!=='zh')setPlayerLanguage(languageMenu.language);
 applySettings();
 await refreshShelf();

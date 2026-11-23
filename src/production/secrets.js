@@ -8,7 +8,7 @@ import path from 'node:path';
  * (openai:https://…/v1). */
 const dir=()=>process.env.VNIFY_SECRETS_DIR||path.join(os.homedir(),'.vnify');
 const file=()=>path.join(dir(),'secrets.json');
-export const SECRET_NAMES=['novelai','comfyui'];
+export const SECRET_NAMES=['novelai','comfyui','fish','freesound','elevenlabs','gemini','pexels','pixabay'];
 const valid=(/** @type {string} */ name)=>SECRET_NAMES.includes(name)||/^openai:https?:\/\/[^\s?#]+$/.test(name)&&name.length<=600;
 
 async function readAll() {

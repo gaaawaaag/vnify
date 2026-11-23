@@ -13,6 +13,18 @@
   pointer-events: none;
 }
 
+/* A new chapter's picture sweeps in from the right behind a soft edge as --wipe runs past 100% (chapterWipe). */
+@property --wipe {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 114%;
+}
+
+.reader-background-layer.is-wiping {
+  -webkit-mask-image: linear-gradient(to left, #000 calc(var(--wipe) - 14%), transparent calc(var(--wipe) + 14%));
+  mask-image: linear-gradient(to left, #000 calc(var(--wipe) - 14%), transparent calc(var(--wipe) + 14%));
+}
+
 .reader-background-layer {
   position: absolute;
   inset: 0;

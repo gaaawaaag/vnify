@@ -16,10 +16,10 @@ import {variantAt} from '../core/variants.js';
  * gave no image are listed too, so a picture can still be bound to them. */
 
 /** @typedef {'cover'|'ambient'|'location'|'character'|'cg'|'cutin'} Category */
-/** @typedef {{kind:'cover'}|{kind:'ambient'|'cg'|'cutin'|'variant'|'character',id:string}|{kind:'location',locations:string[]}} EditRef */
+/** @typedef {{kind:'cover'}|{kind:'endCard'}|{kind:'ambient'|'cg'|'cutin'|'variant'|'character',id:string}|{kind:'location',locations:string[]}} EditRef */
 
 /** @param {any} task */
-const targetOf=task=>task.purpose==='title-card'?{purpose:'title-card'}
+const targetOf=task=>task.purpose==='title-card'||task.purpose==='end-card'?{purpose:task.purpose}
   :task.purpose==='standing'?{purpose:'standing',characterId:task.characterId,...(task.variantId?{variantId:task.variantId}:{})}
   :{purpose:task.purpose,refs:task.refs};
 
@@ -43,6 +43,7 @@ export function assetCatalog({story,docs,backgrounds,characterImages,generation,
   const boundOf=task=>{
     const t=/** @type {any} */(task);
     if(t.purpose==='title-card')return imageInfo(backgrounds.images,backgrounds.bindings.titleCard);
+    if(t.purpose==='end-card')return imageInfo(backgrounds.images,backgrounds.bindings.endCard);
     if(t.purpose==='standing'){
       const slots=characterImages.bindings[t.characterId],portrait=/** @type {any} */(t.variantId?slots?.variants?.[t.variantId]:slots?.standing);
       const info=imageInfo(characterImages.images,portrait?.imageId);
@@ -62,7 +63,7 @@ export function assetCatalog({story,docs,backgrounds,characterImages,generation,
         const prompt=f.prompts.get(key),edit=f.prompts.get(`${key}#edit`);
         return prompt||edit?[[id,{format:f.format,...(prompt?{prompt}:{}),...(edit?{edit}:{})}]]:[];
       })),
-      aspectRatio:t.aspectRatio??'2:3',side:['standing','cg','title-card'].includes(t.purpose)?'character':'background'};
+      aspectRatio:t.aspectRatio??'2:3',side:['standing','cg','title-card','end-card'].includes(t.purpose)?'character':'background'};
   };
   const blocksIn=(/** @type {(unit:any)=>boolean} */ test)=>{
     const counts=new Map(),seen=new Set();
@@ -84,6 +85,8 @@ export function assetCatalog({story,docs,backgrounds,characterImages,generation,
     }
     if(t.purpose==='title-card')entries.push({key:'title-card',cat:'cover',name:'封面',chapterId:t.chapterId,
       images:[image(task,'封面',{kind:'prompt',prompt:story.titleCard?.prompt??''},{kind:'cover'})]});
+    else if(t.purpose==='end-card')entries.push({key:'end-card',cat:'cover',name:'结尾图',chapterId:t.chapterId,
+      images:[image(task,'结尾图',{kind:'prompt',prompt:story.endCard?.prompt??''},{kind:'endCard'})]});
     else if(t.purpose==='cg') {
       const cg=docs.flatMap(d=>d.cgs).find(c=>c.id===t.cgId);
       const at=story.units.findIndex(u=>u.id===t.from);

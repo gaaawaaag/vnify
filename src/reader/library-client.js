@@ -61,6 +61,10 @@ export function createLibraryClient({request=globalThis.fetch.bind(globalThis),b
     commit:(key,{manifest,story,extra,assets})=>call(`${at(key)}/commit`,json('POST',{manifest,story,extra,assets})),
     // keepalive lets the last save finish while the page is being hidden or closed (phones).
     saveProgress:(key,record)=>call(`${at(key)}/progress`,{...json('PUT',record),keepalive:true}),
+    // The book's reading over every device ({finishedAt,startedAt,active,days,rating,review}), for its end card.
+    record:key=>call(`${at(key)}/record`),
+    // This device's rating (1–5 or null) and review; answers with the book's record.
+    saveReview:(key,device,{rating,review})=>call(`${at(key)}/review`,{...json('PUT',{device,rating,review}),keepalive:true}),
     // Adds or updates one reading session of this device (src/reader/reading-time.js).
     saveSession:(key,device,session)=>call(`${at(key)}/session`,{...json('PUT',{device,session}),keepalive:true}),
     // The home page background choice ({background:{kind,dim,custom}}), kept on the shelf for every device.
@@ -73,7 +77,10 @@ export function createLibraryClient({request=globalThis.fetch.bind(globalThis),b
       const query=new URLSearchParams(Object.entries({from,to}).filter(([,value])=>value));
       return (await call(`/_days${query.size?`?${query}`:''}`)).days;
     },
-    // A new title and author ({title,author}); the shelf rewrites the book's @book line and moves its version on.
+    // Reading per day and every book read ({days,books}), for the shelf's statistics.
+    stats:()=>call('/_stats'),
+    // A new title, author and blurb ({title,author,blurb}); the shelf rewrites the book's @book line and blurb record and moves
+    // its version on.
     saveInfo:(key,info)=>call(`${at(key)}/info`,json('PUT',info)),
     // A null blob clears the cover.
     saveCover:(key,id,blob)=>call(`${at(key)}/cover?id=${encodeURIComponent(id??'')}`,

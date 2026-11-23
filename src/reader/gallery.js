@@ -34,6 +34,7 @@ export function galleryEntries({story,backgrounds,extra=null,furthest,complete=t
     if(img?.src)entries.push({category,id,label,src:img.src,width:img.width,height:img.height,reached});
   };
   if(bindings.titleCard)add('cover','title-card',t('封面'),images[bindings.titleCard],true);
+  if(bindings.endCard)add('cover','end-card',t('结尾'),images[bindings.endCard],complete&&furthest>=story.units.length-1);
   if(bindings.book)add('cover','book',t('作品背景'),images[bindings.book],true);
 
   const ambientsSeen=new Set(seen.flatMap(unit=>ambientsOf(story,unit)));

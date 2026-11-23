@@ -1,12 +1,11 @@
 // Screenshots of the reading states a theme must cover, at desktop and narrow sizes.
-// Usage: node scripts/theme-shots.mjs <themeId> [outDir]   (needs the Electron dev dependency: npm install)
+// Usage: node scripts/theme-shots.mjs <themeId> [outDir]   (uses local Chrome / Edge / Chromium; optional CHROME_PATH)
 //        node scripts/theme-shots.mjs <themeId> --book <shelf book folder> [--steps 0,1,2,…] [outDir]
 // The examples have no pictures; --book shoots a real book (backgrounds, figures, avatars) from a copy of its folder
 // (the shelf's library/<bookId>), at the given unit counts, plus the menu and the Cast, gallery, settings and history.
 import {spawnSync} from 'node:child_process';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {createRequire} from 'node:module';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const args=process.argv.slice(2),flag=name=>{const i=args.indexOf(name);return i<0?null:args.splice(i,2)[1];};
@@ -17,14 +16,12 @@ const shots=['rainy-visit.vn.txt#title','rainy-visit.vn.txt#2','rainy-visit.vn.t
   'dream-memory.vn.txt#4','dream-memory.vn.txt#7','pages.vn.txt#2','documents.vn.txt#1','annotations.vn.txt#1','cut-in.vn.txt#0',
   'cut-in.vn.txt#3','standing-portraits.vn.txt#1','standing-portraits.vn.txt#1:avatar','window:cast','window:settings','window:history','hover'];
 const bookShots=['title',...steps.map(step=>`step-${String(step).padStart(3,'0')}`),'menu','cast','gallery','settings','history'];
-// The electron package exports the path of its binary.
-const electron=createRequire(import.meta.url)('electron');
 for(const [name,viewport] of [['desktop',[1280,800]],['narrow',[390,844]]]) {
   const dir=path.join(out,name);
   const run=book
     ?['scripts/browser/book-shots.mjs',JSON.stringify({theme,book:path.resolve(book),out:dir,viewport,steps})]
-    :['scripts/browser/electron-run.mjs','scripts/browser/style-snapshot.js',path.join(out,`${name}.json`),JSON.stringify({returnSnapshot:true,theme,shots,shotsDir:dir,viewport})];
-  const result=spawnSync(electron,run,{cwd:root,encoding:'utf8'});
+    :['scripts/browser/browser-run.mjs','scripts/browser/style-snapshot.js',path.join(out,`${name}.json`),JSON.stringify({returnSnapshot:true,theme,shots,shotsDir:dir,viewport})];
+  const result=spawnSync(process.execPath,run,{cwd:root,encoding:'utf8'});
   if(result.status!==0){console.error(result.stderr||result.stdout);process.exit(1);}
   console.log(`${name}: ${dir}`);
 }

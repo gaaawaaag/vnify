@@ -6,6 +6,7 @@ import {readFile, readdir, stat} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {themeVariables, THEME_SLOTS, THEME_ICONS, ASSET_TYPES, LIMITS} from '../src/reader/theme-api.js';
+import {readUiSounds} from '../src/reader/ui-sound-recipe.js';
 
 // Splits at depth 0 on the given characters, skipping strings and parentheses.
 function blocks(css) {
@@ -34,8 +35,8 @@ function declarations(body) {
   return out.map(text=>{const at=text.indexOf(':');return at<0?{name:text,value:''}:{name:text.slice(0,at).trim(),value:text.slice(at+1).trim()};});
 }
 
-// checkTheme({id, css, files: {relativePath: size}, tokensCss, icons?: {file, text}}) → {errors, warnings, referenced}
-export function checkTheme({id, css, files, tokensCss, icons=null}) {
+// checkTheme({id, css, files: {relativePath: size}, tokensCss, icons?: {file, text}, sounds?: {file, text}}) → {errors, warnings, referenced}
+export function checkTheme({id, css, files, tokensCss, icons=null, sounds=null}) {
   const errors=[],warnings=[],referenced=new Set(),allowed=themeVariables(tokensCss),set=new Set();
   const rootSelector=new RegExp(`^:root\\[data-theme=(["'])${id.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\1\\]$`);
   function urls(value,where) {
@@ -89,6 +90,12 @@ export function checkTheme({id, css, files, tokensCss, icons=null}) {
       else referenced.add(target);
     }
   }
+  if(sounds) {
+    referenced.add(sounds.file);
+    let value=null;
+    try{value=JSON.parse(sounds.text);}catch{errors.push(`${sounds.file}：不是有效的 JSON。`);}
+    if(value!==null)for(const problem of readUiSounds(value).errors)errors.push(`${sounds.file}：${problem}`);
+  }
   for(const slot of THEME_SLOTS)
     if(!set.has(`--${slot}-layer`)&&(set.has(`--${slot}-texture`)||set.has(`--${slot}-frame`)))warnings.push(`设置了 --${slot}-texture／--${slot}-frame，但没有 --${slot}-layer: ""，装饰层不会显示。`);
   let images=0,total=0;
@@ -128,7 +135,13 @@ export async function checkRegisteredTheme(theme,root) {
     if(!file||path.extname(file).toLowerCase()!=='.svg'||!Object.hasOwn(files,file))errors.push(`登记的 icons 须为 ${prefix} 内存在的 .svg 文件。`);
     else icons={file,text:await readFile(path.join(dir,file),'utf8')};
   }
-  const result=checkTheme({id:theme.id,css,files,tokensCss,icons});
+  let sounds=null;
+  if(theme.sounds!==undefined) {
+    const prefix=`styles/themes/${theme.id}/`,file=String(theme.sounds).startsWith(prefix)?String(theme.sounds).slice(prefix.length):'';
+    if(!file||path.extname(file).toLowerCase()!=='.json'||!Object.hasOwn(files,file))errors.push(`登记的 sounds 须为 ${prefix} 内存在的 .json 文件。`);
+    else sounds={file,text:await readFile(path.join(dir,file),'utf8')};
+  }
+  const result=checkTheme({id:theme.id,css,files,tokensCss,icons,sounds});
   return {...result,errors:[...errors,...result.errors]};
 }
 

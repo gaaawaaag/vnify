@@ -139,10 +139,21 @@ export async function readEpub(bytes) {
     title:space(textContent(first(first(opf,'metadata')??opf,'title')??{children:[]})).slice(0,300),
     // Every dc:creator, in order (EPUB 2 role attributes and EPUB 3 refinements are not distinguished).
     author:[...elements(first(opf,'metadata')??opf,'creator')].map(node=>space(textContent(node))).filter(Boolean).join('、').slice(0,300),
+    // The book's own description (dc:description), often HTML escaped inside the text; paragraphs stay apart.
+    description:descriptionText(textContent(first(first(opf,'metadata')??opf,'description')??{children:[]})),
     text:state.lines.join('\n'),chapters,
     images:state.positions.map(({path,file,after})=>({path,after,...(captions.has(file)?{caption:captions.get(file)}:{})})),
     cover:coverItem&&images.has(coverItem.path)?coverItem.path:null,read:archive.read,
   };
+}
+
+/** Plain text of a dc:description, which publishers often fill with escaped HTML: tags go, block ends become paragraph
+ * breaks, entities are decoded, and the result is cut to the blurb limit. @param {string} value */
+export function descriptionText(value) {
+  const named={amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:' '};
+  const text=value.replace(/<\s*(br|\/p|\/div|\/li|\/h\d)\b[^>]*>/gi,'\n').replace(/<[^>]*>/g,'')
+    .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi,(all,name)=>name[0]==='#'?String.fromCodePoint(Number.parseInt(name.slice(name[1]==='x'||name[1]==='X'?2:1),name[1]==='x'||name[1]==='X'?16:10)):named[name.toLowerCase()]??all);
+  return text.split(/\n+/).map(line=>line.replace(/\s+/g,' ').trim()).filter(Boolean).join('\n').slice(0,2000);
 }
 
 // Line N of the EPUB text is source paragraph N in line mode.

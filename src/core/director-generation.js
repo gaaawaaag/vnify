@@ -23,6 +23,8 @@ export function directorGeneration(settings) {
 
 // The title card belongs to the whole-book design, so chapter records do not carry it.
 export const titleCardEnabled=(/** @type {DirectorSettings} */ settings)=>settings.backgrounds!==false&&settings.titleCard!==false;
+// The end card's picture, also from the whole-book design, is made only when asked for.
+export const endCardEnabled=(/** @type {DirectorSettings} */ settings)=>settings.backgrounds!==false&&settings.endCard===true;
 
 /** @param {any} value @returns {Generation} */
 export function validateDirectorGeneration(value) {

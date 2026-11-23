@@ -7,7 +7,7 @@
 ## 主题作用范围与结构
 
 - **作用范围**：主题作用于**播放器**（阅读画面、菜单、历史记录、人物、词条、图集、附录、设置、悬停卡片）与**标题画面**；书架主页保持默认界面样式。
-- **配置机制**：主题通过 CSS 自定义属性（变量）定义配色、材质、字体族、布局与外形参数以及装饰层贴图与九宫格边框，并可用一份 `icons.svg` 替换阅读界面的图标。若主题需要锁定某项外观设置（如固定对话框透明度 `"dialogueTransparency"`），可在主题注册项中声明 `fixed` 数组。
+- **配置机制**：主题通过 CSS 自定义属性（变量）定义配色、材质、字体族、布局与外形参数以及装饰层贴图与九宫格边框，并可用一份 `icons.svg` 替换阅读界面的图标、用一份 `sounds.json` 提供界面音效。若主题需要锁定某项外观设置（如固定对话框透明度 `"dialogueTransparency"`），可在主题注册项中声明 `fixed` 数组。
 - **目录与文件结构**：
 
 ```text
@@ -16,6 +16,7 @@ styles/themes/my-theme/
   paper.webp        纹理贴图或边框图（支持 PNG / WebP / JPEG / SVG）
   frame.svg
   icons.svg         替换的图标（可选，见“主题图标”）
+  sounds.json       界面音效（可选，见“界面音效”）
   fonts/title.woff2 主题字体（支持 WOFF2 / WOFF / TTF / OTF）
 ```
 
@@ -27,6 +28,7 @@ Object.freeze({
   label: '我的主题',
   stylesheet: 'styles/themes/my-theme/theme.css',
   icons: 'styles/themes/my-theme/icons.svg',   // 可选
+  sounds: 'styles/themes/my-theme/sounds.json', // 可选
   fixed: ['dialogueTransparency']              // 可选
 }),
 ```
@@ -77,15 +79,15 @@ Object.freeze({
 | 基础配色 | `--bg`（页面底色）、`--text`（正文色）、`--muted`（次要文字色）、`--gold` / `--accent`（强调色）、`--line`（分隔线）、`--focus`（焦点框）、`--panel`（实心面板底色）、`--hover`（悬停底色） |
 | 场景底幕 | `--scrim-rgb`（底幕渐变色，格式为 `"R G B"` 三个数字）、`--dialogue-fade`（底幕顶边渐隐高度）、`--dialogue-text-shadow`（正文阴影）；`--dialogue-alpha` 由阅读设置的对话框透明度控制 |
 | 面板与卡片材质 | `--surface-rgb`（`"R G B"` 三个数字）、`--glass`、`--blur`、`--card-radius`、`--card-highlight-rgb`、`--shadow`、`--shadow-rgb` |
-| 回忆与梦境 | `--memory`、`--dream`（文字与标签色）、`--memory-scrim-rgb`、`--dream-scrim-rgb`（底幕染色）、`--memory-image-filter`、`--dream-image-filter`（画面 CSS `filter` 值）、`--memory-surface-rgb`、`--dream-surface-rgb`（阅读框材质色） |
+| 回忆与梦境 | `--memory`、`--dream`（文字与标签色）、`--memory-scrim-rgb`、`--dream-scrim-rgb`（底幕染色）、`--memory-image-filter`、`--dream-image-filter`（画面 CSS `filter` 值）、`--memory-image-blur`（回忆画面的柔焦，`0px` 为不虚化）、`--memory-vignette`、`--dream-vignette`（画面四角暗角，CSS 图像值，`none` 为不加）、`--memory-surface-rgb`、`--dream-surface-rgb`（阅读框材质色） |
 | 场景状态栏 | 右上角常驻地点、时间、菜单与保存图标：`--context-text`（地点与菜单按钮）、`--context-muted`（时间与保存图标）、`--context-shadow` |
-| 快捷操作 | `--quick-text`（名字行右侧的隐藏、历史、自动按钮颜色） |
+| 快捷操作 | `--quick-text`（名字行右侧的隐藏、朗读、历史、自动按钮颜色） |
 | 人物名对比底色 | `--contrast-surface`、`--contrast-memory-surface`、`--contrast-dream-surface`、`--contrast-document-surface`（6 位十六进制实心色，填写对应阅读框的大致底色，供播放器自动校准人物名可读对比度） |
 | 布局与立绘参数 | `--dialogue-max-width`（文字栏最大宽度）、`--dialogue-padding`、`--dialogue-bottom-space`（文字距屏幕底边距离）、`--dialogue-quick-top`、`--dialogue-quick-right`、`--dialogue-avatar-size`、`--dialogue-side-avatar-size`（宽屏文字栏左侧头像最大宽度）、`--standing-height`（立绘图高，默认 `min(100cqh, 175cqw)`，宽窄屏共用）、`--standing-hair`（立绘发顶位置，宽窄屏共用）、`--standing-band-top`（宽屏立绘下沉参照线）、`--standing-floor`（宽屏立绘底边基准线）、`--standing-left` / `--standing-right`（宽屏左右立绘中心位置）、`--standing-left-narrow` / `--standing-right-narrow`（窄屏左右立绘中心位置）、`--standing-back-brightness`（非说话人立绘亮度）、`--nameplate-padding`、`--nameplate-shift`（名字牌偏移，如 `0 -8px`） |
 | 阅读框外形 | 默认没有框，文字直接压在底幕上。`--dialogue-box-alpha`（框底色不透明度，底色取 `--surface-rgb`，回忆／梦境时随之染色；`0` 为无底色）、`--dialogue-box-image`（叠在底色上的 `background-image`）、`--dialogue-box-border`、`--dialogue-box-radius`、`--dialogue-box-shadow`（可写错位硬阴影如 `5px 6px 0 #22305a`）、`--dialogue-box-inset`（框与屏幕边缘、底边的间距，窄屏上常用）、`--dialogue-sample-padding`（设置页样例文字在框内的内边距）。设置页样例使用同一外形 |
 | 名牌外形 | `--nameplate-fill`（名牌底色）、`--nameplate-character-fill`（混入人物色的比例，如 `100%` 为整块人物色）、`--nameplate-text`（固定的名字颜色；不设时用人物色）、`--nameplate-text-shadow`、`--nameplate-border`、`--nameplate-radius`、`--nameplate-shadow`、`--nameplate-font-size`、`--nameplate-rotate`（倾斜角度） |
 | 名字记号 | 名牌旁的一个小图形，默认是名字下方的短线。`--name-rule-width`（宽度，设为 `0` 时隐藏）、`--name-mark-height`、`--name-mark-inset`（相对名牌的位置，写法同 `inset`，默认 `auto auto -8px 0`）、`--name-mark-transform`、`--name-mark-background`（不设时用人物色，可写图片）、`--name-mark-border`、`--name-mark-radius`、`--name-mark-shadow`、`--name-mark-opacity`。可做成圆点、气泡尾巴等 |
-| 快捷按钮 | 名字行右侧的隐藏、历史、自动：`--quick-button-width`、`--quick-button-height`、`--quick-button-gap`、`--quick-button-background`、`--quick-button-border`、`--quick-button-shadow`、`--quick-icon-size`、`--quick-icon-stroke`（线条图标的线宽），自动播放开启时的 `--quick-active-text`、`--quick-active-background`；圆角用 `--toolbar-button-radius` |
+| 快捷按钮 | 名字行右侧的隐藏、朗读、历史、自动：`--quick-button-width`、`--quick-button-height`、`--quick-button-gap`、`--quick-button-background`、`--quick-button-border`、`--quick-button-shadow`、`--quick-icon-size`、`--quick-icon-stroke`（线条图标的线宽），自动播放开启时的 `--quick-active-text`、`--quick-active-background`；圆角用 `--toolbar-button-radius` |
 | 菜单按钮与菜单项 | 右上角菜单按钮：`--menu-button-size`、`--menu-button-background`、`--menu-button-open-background`（菜单展开时）、`--menu-button-border`、`--menu-button-shadow`、`--menu-button-filter`（收起时压在画面上的投影）。菜单项：`--menu-item-padding`、`--menu-item-font-size`、`--menu-item-align`，左侧小记号 `--menu-mark-size`、`--menu-mark-rotate`、`--menu-mark-radius`、`--menu-mark-border`、`--menu-mark-background`、`--menu-mark-rest-opacity`（未悬停时的不透明度，默认 `0`）。书名卡、章节列表与菜单项共用的描边：`--toolbar-button-shadow`、`--toolbar-button-hover-shadow` |
 | 地点标签 | 右上角地点与时间默认没有底：`--place-padding`、`--place-background`、`--place-border`、`--place-radius`、`--place-shadow`，地点前的小记号 `--place-mark-display`（设为 `none` 隐藏）、`--place-mark-color` |
 | 点击继续指示器 | `--continue-background`（句末记号的填充色或背景图）、`--continue-size`（记号边长，默认 `6px`）、`--continue-rotate`（记号转角，默认 `45deg` 即菱形；用图片时常设 `0deg`）、`--continue-dot`（自动播放时绕行圆点的颜色）、`--continue-line`（落点涟漪与绕行轨道线条颜色），同时作用于标题画面“点击开始”指示器 |
@@ -99,10 +101,9 @@ Object.freeze({
 | 侧位头像衬板 | `--side-portrait-bottom`（相对文字栏底边；initial 沿用屏幕贴底）、`--side-portrait-gap`（与文字栏间距，可为负）、`--side-portrait-panel-content`（设为双引号空串开启）、`--side-portrait-panel`（背景）、`--side-portrait-panel-shadow`（内框）；衬板从头像高度 22% 处向下铺满，位于图片背后 |
 | 对话框头像 | `--portrait-backing`、`--portrait-shadow`、`--portrait-radius`；宽屏文字栏左侧的头像默认无框：`--side-portrait-backing`、`--side-portrait-shadow`、`--side-portrait-radius`；窄屏头像默认无框：`--narrow-portrait-mask`（遮罩，默认 `none`）、`--narrow-portrait-backing`、`--narrow-portrait-shadow`、`--narrow-portrait-radius`、`--narrow-portrait-left`、`--narrow-portrait-top`、`--narrow-portrait-layer`（设为 `-1` 时头像在阅读框之下，有底色的框压住重叠部分）、`--narrow-portrait-text-left`（显示头像时正文的左内边距）；显示窄屏头像时的名字行：`--narrow-name-left`（名字起点）、`--narrow-name-mark-inset`、`--narrow-name-mark-width`（名字记号的位置与宽度，不设时同其他情况）、`--narrow-speaker-row-align`、`--narrow-speaker-row-height`、`--narrow-speaker-row-lift`（名字行的对齐、高度与底部留空；高度固定且底部对齐时，折行的长名字向上长，名字记号位置不变） |
 | 特写插图（Cut-in） | `--cut-in-border`、`--cut-in-shadow`、`--cut-in-radius` |
-| 标题画面 | `--title-screen-text`、`--title-screen-hint`、`--title-screen-scrim`、`--title-screen-shadow` |
+| 标题画面 | `--title-screen-text`、`--title-screen-hint`、`--title-screen-shadow`、`--title-screen-backdrop-filter`（模糊底图）、`--title-screen-cover-shadow`（封面）、`--title-screen-accent`（状态行的菱形与评分）、`--title-screen-button`、`--title-screen-button-line`、`--title-screen-primary`、`--title-screen-primary-text`（按钮） |
+| 结尾卡片 | 文字与阴影沿用标题画面；`--end-card-backdrop-filter`（封面模糊底图）、`--end-card-picture-filter`、`--end-card-picture-shade`（作品自己的结尾图与中央暗影）、`--end-card-background`、`--end-card-soft`、`--end-card-faint`、`--end-card-line`、`--end-card-accent`（评分菱形）、`--end-card-field`、`--end-card-field-line`（短评框）、`--end-card-button`、`--end-card-primary`、`--end-card-primary-text` |
 | 鼠标指针 | `--cursor-default`、`--cursor-pointer`、`--cursor-help`（如 `url(cursor.png) 3 3, default`） |
-
-### 主题字体变量
 
 ### 阅读框贴图与状态暗角
 
@@ -162,6 +163,7 @@ Object.freeze({
 | id | 图标 |
 | --- | --- |
 | `i-hide` | 隐藏对话框 |
+| `i-voice`／`i-voice-off` | 朗读开／关 |
 | `i-history` | 历史 |
 | `i-auto` | 自动播放 |
 | `i-menu` | 右上角菜单按钮 |
@@ -182,6 +184,40 @@ Object.freeze({
 - 线条图标沿用按钮的描边样式（`fill: none`、`stroke: currentColor`），需要实心时在图形上写 `fill="currentColor"`；彩色图标直接写颜色或用 `<image>` 引用 PNG／WebP／SVG。
 - 图标大小由按钮样式决定（快捷按钮见 `--quick-icon-size`）。
 
+## 界面音效
+
+播放器在几处界面操作时发出很短的声音：
+
+| 事件 | 时机 |
+|---|---|
+| `open` | 打开阅读菜单、全屏面板、历史、章节列表 |
+| `close` | 关闭上述内容 |
+| `select` | 面板里的选择与设置项、名字行右侧的快捷按钮、结尾画面的按钮与评分 |
+| `chapter` | 章节扉页出现 |
+
+推进正文不出声；自动播放、恢复和重绘也不出声（章节扉页除外）。读者在设置里用“界面音效音量”调节或关掉。
+
+主题可在注册项中用 `sounds` 指向主题文件夹内的一份 JSON，按事件写声音；没有提供的事件、或没有 `sounds` 的主题，使用第一个注册主题（Dark）的声音。声音由播放器现场合成，文件里只写数字：
+
+```json
+{
+  "select": {"gain": 1.2, "layers": [
+    {"type": "tone", "wave": "triangle", "f": 660, "dur": 0.04, "g": 0.1}
+  ]},
+  "chapter": {"gain": 0.6, "layers": [
+    {"type": "noise", "filter": "bandpass", "f": 900, "f2": 2800, "q": 1.1, "dur": 0.28, "a": 0.1, "g": 0.12},
+    {"type": "bell", "f": 392, "ratios": [1, 2, 2.76], "gains": [0.14, 0.05, 0.06], "dur": 2, "at": 0.25, "wet": 0.4}
+  ]}
+}
+```
+
+- 每个事件有整体音量 `gain`（0–4，默认 1）和 1–8 层 `layers`。
+- `tone`：单音，`f` 赫兹，可用 `f2` 滑向另一频率；`wave` 为 `sine`（默认）、`triangle`、`square`、`sawtooth`。
+- `noise`：过滤后的噪声，`filter` 为 `bandpass`（默认）、`lowpass`、`highpass`，`f` 为滤波频率（可用 `f2` 扫频），`q` 默认 1。
+- `bell`：铃声，在 `f` 的各倍数 `ratios`（0.25–16）上叠加正弦，`gains` 为各自音量，高次的衰减更快。
+- 通用参数：`dur` 时长（秒），`at` 从声音开始起的延迟（`at`＋`dur` 不超过 4 秒），`g` 峰值音量（0–1），`a` 起音时间，`wet` 送进共用混响的比例（0–1）。
+- 点击类声音建议在 0.15 秒以内、起音柔和；每次播放时音高和音量会有少许随机变化，同一事件 80 毫秒内不会重复。
+
 ## 校验与多状态截图
 
 编写或修改主题后，可使用内置脚本校验语法边界并生成全状态预览图：
@@ -190,7 +226,7 @@ Object.freeze({
 # 校验主题 CSS 规则、变量名、文件路径与体积限制
 node scripts/check-themes.mjs my-theme
 
-# 自动渲染桌面与窄屏下的全部阅读状态并生成对比页（需先执行 npm install）
+# 自动渲染桌面与窄屏下的全部阅读状态并生成对比页（使用本机 Chrome / Edge / Chromium，无需 npm install；可用 CHROME_PATH 指定路径）
 node scripts/theme-shots.mjs my-theme
 ```
 

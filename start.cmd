@@ -1,4 +1,4 @@
 @echo off
 cd /d "%~dp0"
-node src/server/server.mjs
+node src/server/server.mjs --open
 pause

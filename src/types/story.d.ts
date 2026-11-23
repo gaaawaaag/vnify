@@ -1,5 +1,5 @@
 // The parsed .vn.txt (src/core/parser.js), plus the indexes readDirectors attaches after every Director record passes.
-import type {AmbientArt,CgRecord,CutInArt,StageRange,TitleCard,VariantArt} from './director.js';
+import type {AmbientArt,CgRecord,CutInArt,MusicCues,MusicRecord,SoundIndex,SoundRecord,StageRange,TitleCard,VariantArt,VoiceRecord} from './director.js';
 
 export type EntityKind='character'|'location';
 export type BlockKind='scene'|'narration'|'document';
@@ -39,5 +39,16 @@ export interface ParsedStory {
   warnings:ParseWarning[];entities:Map<string,Entity>;transitions:Transition[];
 }
 export interface Story extends ParsedStory {
-  titleCard?:TitleCard|null;cgs?:Map<string,CgRecord>;ambientArt?:AmbientArt;cutInArt?:CutInArt;variantArt?:VariantArt;stageRanges?:StageRange[];
+  titleCard?:TitleCard|null;
+  // The end card picture's description (`// @vn-end-card`), null without one.
+  endCard?:TitleCard|null;
+  // The story's blurb (`// @vn-blurb`), null without one; set with the director records.
+  blurb?:string|null;
+  // The music record (`// @vn-music`) and its cues by unit index; null without one.
+  music?:MusicRecord|null;musicCues?:MusicCues|null;
+  // The voice record (`// @vn-voices`); null without one.
+  voices?:VoiceRecord|null;
+  // The ambience and sound effects record (`// @vn-sounds`) and its effects by unit index; null without one.
+  sounds?:SoundRecord|null;soundIndex?:SoundIndex|null;
+  cgs?:Map<string,CgRecord>;ambientArt?:AmbientArt;cutInArt?:CutInArt;variantArt?:VariantArt;stageRanges?:StageRange[];
 }

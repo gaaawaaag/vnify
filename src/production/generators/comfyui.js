@@ -7,7 +7,7 @@ import {randomUUID} from 'node:crypto';
 const POLL_MS=1000,TIMEOUT_MS=15*60*1000;
 
 /** Puts each value into the node input its field is mapped to; unmapped fields keep the workflow's own values.
- * @param {string} workflow @param {import('../image-presets.js').WorkflowMap} map @param {Record<string,unknown>} values */
+ * @param {string} workflow @param {Record<string,[string,string]|undefined>} map @param {Record<string,unknown>} values */
 export function fillWorkflow(workflow,map,values) {
   const data=JSON.parse(workflow);
   for(const [field,target] of Object.entries(map)) {
@@ -58,11 +58,12 @@ const wait=(/** @type {number} */ ms,/** @type {AbortSignal|undefined} */ signal
 /**
  * Runs a workflow and returns the first image it saves. images: pictures by the field that names their loader (image,
  * image2, image3), each uploaded first; unused: mapped loaders this run has no picture for, taken out of the workflow.
- * @param {{url:string,workflow:string,map:import('../image-presets.js').WorkflowMap,values:Record<string,unknown>,images?:Record<string,Uint8Array>,
- *   unused?:string[],headers?:Record<string,string>,signal?:AbortSignal,mark?:(stage:string)=>void}} request
+ * @param {{url:string,workflow:string,map:Record<string,[string,string]|undefined>,values:Record<string,unknown>,images?:Record<string,Uint8Array>,
+ *   unused?:string[],headers?:Record<string,string>,signal?:AbortSignal,mark?:(stage:string)=>void,output?:'images'|'audio'}} request
+ * output: what the workflow saves, pictures (images) or sound (audio).
  * mark: called as each stage ends (上传, 生成, 下载), for the queue's timing log.
  */
-export async function run({url,workflow,map,values,images={},unused=[],headers={},signal,mark=()=>{}}) {
+export async function run({url,workflow,map,values,images={},unused=[],headers={},signal,mark=()=>{},output='images'}) {
   const filled={...values};
   for(const [field,image] of Object.entries(images)) {
     const form=new FormData();
@@ -82,9 +83,13 @@ export async function run({url,workflow,map,values,images={},unused=[],headers={
     const history=await (await call(`${url}/history/${id}`,{signal},headers)).json(),entry=history[id];
     if(!entry)continue;
     if(entry.status?.status_str==='error')throw new Error(`ComfyUI 运行出错：${JSON.stringify(entry.status.messages?.find((/** @type {any} */ m)=>m[0]==='execution_error')?.[1]?.exception_message??'').slice(0,300)}`);
-    const picture=Object.values(entry.outputs??{}).flatMap((/** @type {any} */ out)=>out.images??[]).find((/** @type {any} */ i)=>i.type!=='temp')
-      ??Object.values(entry.outputs??{}).flatMap((/** @type {any} */ out)=>out.images??[])[0];
-    if(!picture){if(entry.status?.completed)throw new Error('ComfyUI 没有输出图片：工作流里要有保存图片的节点。');continue;}
+    const saved=Object.values(entry.outputs??{}).flatMap((/** @type {any} */ out)=>out[output]??[]);
+    const picture=saved.find((/** @type {any} */ i)=>i.type!=='temp')??saved[0];
+    if(!picture) {
+      if(entry.status?.completed)throw new Error(output==='audio'?'ComfyUI 没有输出音频：工作流里要有保存音频的节点（如 SaveAudioMP3）。'
+        :'ComfyUI 没有输出图片：工作流里要有保存图片的节点。');
+      continue;
+    }
     mark('生成');
     const query=new URLSearchParams({filename:picture.filename,subfolder:picture.subfolder??'',type:picture.type??'output'});
     const bytes=new Uint8Array(await (await call(`${url}/view?${query}`,{signal},headers)).arrayBuffer());

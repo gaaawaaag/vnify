@@ -6,9 +6,10 @@ import { createHash } from 'node:crypto';
 import { createLibrary } from './library.mjs';
 import { createCloudAccess } from './cloud.mjs';
 import { createManager } from './manager.mjs';
+import { createSpeech } from './tts.mjs';
 import { sendManagerPage, localOrigin } from './manager-server.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
-// Default library folder for `npm start`; the desktop app passes its own under appData.
+// Default library folder for `npm start`; override with `dataDir` / `VN_DATA_DIR`.
 export const defaultDataDir = path.join(root, 'data');
 const types = {
   '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.txt': 'text/plain', '.json': 'application/json',
@@ -31,7 +32,7 @@ async function buildId() {
   return hash.digest('base64url').slice(0, 12);
 }
 const linkBuild = (html, id) => html.replace(/\b(src|href)="(?=(?:src|styles)\/)/g, `$1="v/${id}/`);
-async function handle(req, res, library, cloud, manager) {
+async function handle(req, res, library, cloud, manager, speech) {
   try {
     const requested = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
     if (cloud && await cloud.gate(req, res, requested)) return;
@@ -42,6 +43,8 @@ async function handle(req, res, library, cloud, manager) {
       await library.handle(req, res, name, cloud ? cloud.pageOrigin(req) : localOrigin(req));
       return;
     }
+    // Speech passed on to providers that refuse calls from a web page; local and cloud alike, behind the cloud sign-in.
+    if (name.startsWith('/api/tts/')) { await speech.handle(req, res, name, cloud ? cloud.pageOrigin(req) : localOrigin(req)); return; }
     if (manager && (name === '/api/manager' || name.startsWith('/api/manager/'))) { await manager.handle(req, res, name, localOrigin(req)); return; }
     if (manager && (name === '/manager' || name.startsWith('/manager/'))) { await sendManagerPage(req, res, name); return; }
     const file = path.resolve(root, '.' + (name === '/' ? '/index.html' : name));
@@ -62,13 +65,14 @@ async function handle(req, res, library, cloud, manager) {
 }
 // Resolves with the listening server; rejects when the port is taken.
 // `cloud` (from cloudConfig) serves only the bookshelf and player, behind the owner's passphrase.
-// The asset manager (`production`: the folder holding presets.json and works/) is local only; the desktop reader leaves it off.
+// The asset manager (`production`: the folder holding presets.json and works/) is local only; pass `production: null` to disable it.
 export function startServer(port, { dataDir = defaultDataDir, cloud = null, host = '127.0.0.1', production = root } = {}) {
   const library = createLibrary(path.join(dataDir, 'library'));
   const access = cloud ? createCloudAccess(cloud) : null;
   const manager = !cloud && production ? createManager(production) : null;
+  const speech = createSpeech();
   return new Promise((resolve, reject) => {
-    const server = http.createServer((req, res) => handle(req, res, library, access, manager));
+    const server = http.createServer((req, res) => handle(req, res, library, access, manager, speech));
     server.once('error', reject);
     server.listen(port, host, () => resolve(server));
   });

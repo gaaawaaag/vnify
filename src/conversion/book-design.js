@@ -1,8 +1,9 @@
 import {renderPrompt} from '../prompts/library.js';
 import {lookFields} from './looks.js';
 import {validateArtStyles,sameArtStyles,requireArtStyles,characterCandidates} from '../core/director.js';
-import {directorGeneration,titleCardEnabled} from '../core/director-generation.js';
+import {directorGeneration,titleCardEnabled,endCardEnabled} from '../core/director-generation.js';
 import {validateTitleCard} from '../core/director.js';
+import {checkBlurb} from '../core/blurb.js';
 import {validateVariantDefinition,VARIANT_LIMITS,checkStature} from '../core/variants.js';
 import {validateAmbientDefinition} from '../core/ambients.js';
 import {coverRatio} from '../production/presets.js';
@@ -53,12 +54,39 @@ export function validateDesign(raw,entities,settings,fixedStyles=null) {
   const ambients=designAmbients(doc.ambients,g);
   const variants=designVariants(doc.variants,kinds,g,characters);
   const result={artStyles,characters,backgrounds,...(ambients.length?{ambients}:{}),...(variants.length?{variants}:{})};
-  const cover=titleCardEnabled(settings);
+  const cover=titleCardEnabled(settings),ending=endCardEnabled(settings);
   // Everything the design registers is drawn once; together it must leave room within the book's image limit.
-  const planned=(cover?1:0)+new Set(backgrounds.map(b=>b.prompt)).size+characters.length+ambients.length+variants.length;
+  const planned=(cover?1:0)+(ending?1:0)+new Set(backgrounds.map(b=>b.prompt)).size+characters.length+ambients.length+variants.length;
   if(settings.imageLimit&&planned>settings.imageLimit)throw new Error(`全书设计登记了 ${planned} 张图，超过全书上限 ${settings.imageLimit} 张。`);
-  if(!cover)return result;
-  return {...result,titleCard:validateTitleCard(doc.titleCard)};
+  // A blurb, asked for when the text has none, is kept for the reading copy.
+  const blurb=doc.blurb===undefined?'':checkBlurb(doc.blurb);
+  // Voice portraits, asked for by the preset: the narrator, other characters and characters by ID.
+  let voices=null;
+  if(settings.voicePortraits&&doc.voices!==undefined) {
+    if(!doc.voices||typeof doc.voices!=='object'||Array.isArray(doc.voices))throw new Error('全书设计的 voices 须为 {角色: 声音画像}。');
+    voices={};
+    for(const [role,portrait] of Object.entries(doc.voices)) {
+      if(!['narrator','other'].includes(role)&&kinds.get(role)!=='character')throw new Error(`全书设计的声音画像人物无效：${role}`);
+      if(typeof portrait!=='string'||portrait.length>1000)throw new Error(`全书设计 ${role} 的声音画像须为文字（最多 1000 字）。`);
+      if(portrait.trim())voices[role]=portrait.trim();
+    }
+  }
+  // The track list, asked for by the preset: each track's ID, name and English description for music generation.
+  let music=null;
+  if(settings.musicTracks&&doc.music!==undefined) {
+    if(!Array.isArray(doc.music)||doc.music.length>16)throw new Error('全书设计的 music 须为数组，最多 16 首。');
+    const ids=new Set();
+    music=doc.music.map((/** @type {any} */ track)=>{
+      if(!track||typeof track.id!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/.test(track.id)||ids.has(track.id))throw new Error(`全书设计的曲目 ID 无效或重复：${track?.id}`);
+      if(typeof track.name!=='string'||!track.name.trim()||track.name.length>200)throw new Error(`全书设计的曲目 ${track.id} 需要名称。`);
+      if(typeof track.prompt!=='string'||!track.prompt.trim()||track.prompt.length>4000)throw new Error(`全书设计的曲目 ${track.id} 需要英文描述。`);
+      ids.add(track.id);
+      return {id:track.id,name:track.name.trim(),prompt:track.prompt.trim()};
+    });
+  }
+  const designed={...result,...(blurb?{blurb}:{}),...(voices?{voices}:{}),...(music?{music}:{}),...(ending?{endCard:validateTitleCard(doc.endCard,'endCard')}:{})};
+  if(!cover)return designed;
+  return {...designed,titleCard:validateTitleCard(doc.titleCard)};
 }
 
 // Ambients the book returns to; a chapter that shows one brings its definition in.
@@ -120,25 +148,37 @@ export function readDesignConflicts(value,story,chapterId) {
   });
 }
 
-export function designPacket({book,entities,chapterCount,settings,fixedStyles}) {
+// How many tracks the list has at each music density.
+/** @type {Record<string,string>} */
+const MUSIC_TRACKS={few:'2 到 4 首：只覆盖全书最主要的几种气氛',medium:'4 到 8 首',rich:'6 到 12 首：主要人物、地点或反复出现的情境可以有各自的曲子'};
+
+/* blurb: whether the text still lacks a blurb (none from the original book), so the design writes one. */
+export function designPacket({book,entities,chapterCount,settings,fixedStyles,blurb=false}) {
   const g=directorGeneration(settings),density=directorDensity(settings.density);
   const part=(/** @type {string} */ id)=>renderPrompt(id,{},book.lang);
   const rules=[part('lang.output'),part('design.task'),styleRules(fixedStyles,settings)].filter(Boolean);
   if(g.standing)rules.push(part('director11.characters'));
   if(g.ambients||g.locationBackgrounds)rules.push(part('director11.background'));
   if(g.ambients)rules.push(part('design.ambients'));
-  const cover=titleCardEnabled(settings);
+  const cover=titleCardEnabled(settings),ending=endCardEnabled(settings);
   if(cover)rules.push(part('design.title-card'));
+  if(ending)rules.push(part('design.end-card'));
+  if(blurb)rules.push(part('design.blurb'));
+  if(settings.voicePortraits)rules.push(part('design.voices'));
+  if(settings.musicTracks)rules.push(part('design.music'));
   const variants=g.characterVariants||g.locationVariants;
   if(variants)rules.push(part('design.variants'));
+  if(Object.keys(usedDensity(density,g)).length)rules.push(part('director11.density'));
   // The cover names its own canvas, which follows the book's orientation.
   const needs={characters:g.standing,ambients:g.ambients,locationBackgrounds:g.locationBackgrounds,titleCard:cover&&canvasOf(coverRatio(settings.ratio)),
-    characterVariants:g.characterVariants,locationVariants:g.locationVariants,density:usedDensity(density,g),
+    ...(ending?{endCard:canvasOf(coverRatio(settings.ratio))}:{}),
+    characterVariants:g.characterVariants,locationVariants:g.locationVariants,density:usedDensity(density,g),...(blurb?{blurb:true}:{}),...(settings.voicePortraits?{voices:true}:{}),...(settings.musicTracks?{music:MUSIC_TRACKS[settings.musicDensity??'medium']}:{}),
     ...(g.ambients||g.locationBackgrounds?{canvas:canvasOf(settings.ratio??'16:9')}:{})};
   return rules.join('\n\n')+'\n\n---\n'+renderPrompt('design.request',{bookTitle:JSON.stringify(book.title),chapterCount,
     styles:JSON.stringify(fixedStyles),needs:JSON.stringify(needs),entities:JSON.stringify(entities)})
     +renderPrompt('design.output',{artStyles:fixedStyles?'':`"artStyles":${JSON.stringify(styleSchema(styleRequest(settings)))},`})
-    +(g.ambients?'\n'+renderPrompt('design.output-ambients'):'')+(cover?'\n'+renderPrompt('design.output-title-card'):'')+(variants?'\n'+renderPrompt('design.output-variants'):'')
+    +(g.ambients?'\n'+renderPrompt('design.output-ambients'):'')+(cover?'\n'+renderPrompt('design.output-title-card'):'')+(ending?'\n'+renderPrompt('design.output-end-card'):'')+(blurb?'\n'+renderPrompt('design.output-blurb'):'')
+    +(settings.voicePortraits?'\n'+renderPrompt('design.output-voices'):'')+(settings.musicTracks?'\n'+renderPrompt('design.output-music'):'')+(variants?'\n'+renderPrompt('design.output-variants'):'')
     +(settings.imageLimit?'\n'+imageLimitText(settings,0):'');
 }
 

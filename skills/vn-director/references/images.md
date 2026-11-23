@@ -16,27 +16,30 @@
 
 ## 用管理器的生图设置
 
-清单有 `imageScheme` 时，生图走资产管理器“生图服务”里填好的预设与密钥，不用宿主工具：
+清单有 `imageScheme` 时，生图走资产管理器“生成与搜索”里填好的生图预设与密钥，不用宿主工具：
 
 ```sh
 node scripts/draw-images.mjs "work/project.json" --list --missing
 node scripts/draw-images.mjs "work/project.json" --missing --limit 6
 node scripts/draw-images.mjs "work/project.json" --draw <key,key>
 node scripts/draw-images.mjs "work/project.json" --prompt <key>[#edit] --text-file <文件>
+node scripts/draw-images.mjs "work/project.json" --sheet [all|<种类>|<key,key>] [--cols 4] [--per-page 16]
 node scripts/draw-images.mjs "work/project.json" --crop <立绘key> [--clavicle 0.31] [--save]
+node scripts/draw-images.mjs "work/project.json" --crop-sheet [<key,key>] [--mode guides|preview]
+node scripts/draw-images.mjs "work/project.json" --crop-batch <crops.json> [--save]
 ```
 
 - `--list --missing` 列出缺图：`key`、所用预设、请求尺寸 `request` 与将要发送的提示词（`promptSource`：manual 手动改写、formatted 改写稿、composed 组装稿）。有 `problem` 的图没有对应预设或没有提示词，不会生成；有 `pending` 的说明预设要求改写而这张还没有改写稿，先改写再生成。已绑定的图另列实际尺寸 `size`；模型只出固定尺寸或工作流带超分时，实际尺寸与请求不同，比例相近即可，不因此重画。
 - `--missing` 按封面、氛围图、地点、立绘（默认图在差分前）、CG、特写的顺序生成缺图，CG 能用到已绑定的立绘作参考，差分以默认图为底。每次 `--limit` 几张，看完这一批再继续。输出逐张列出 `state`（done／failed／skipped）、错误与生成的图片文件 `file`。生成会调用付费服务时，范围以用户的交付要求为准。
-- 每张 done 的图都打开 `file` 查看，按下文“排定与检查”的标准检查。只处理严重问题：人物、地点或物件与描述明显不符（性别、年龄、发色、服装、人数不对，多出或缺了人），CG 出场人物错误，立绘取景不是头顶到大腿中部或头被切掉，画面有文字或水印，四肢、手、脸严重畸形，透明立绘仍带背景。信纸、书页、招牌、屏幕这类本来带字的物件上出现无法辨认的伪文字不算严重问题：不少生图模型难以避免，除非用户或这张图的要求明确写了不能有，否则不为它重画。构图偏好、画风细节和轻微瑕疵不重画。
-- 有严重问题时，按问题改写这张图的提示词：先用 `--list` 取当前提示词（`prompt` 是可改的文字；CG 的出场人物说明在发送时补上，`sent` 是补上后的全文，不要把它当作改写的底稿；`@1`–`@3` 照原样保留），保留画风、用途模板与取景句（立绘的取景句逐字保留），只针对出错的部分加强或改写描述，写进文件后用 `--prompt <key> --text-file <文件>` 保存（即管理器里的“手动改写”，之后生成都发送它；`--clear` 清除），再 `--draw <key>` 重画。差分由默认图编辑生成时，发送的是 `--list` 里的 `editPrompt`，改它用 `--prompt <key>#edit`。同一张图最多改两轮；仍不行就在清单 `holds` 写明原因，继续其他图，交付时说明。只是偶发的坏图（提示词没问题）可以不改提示词直接重画一次。
-- failed 的图先看错误：缺密钥、服务连不上、工作流缺失时告诉用户去生图服务页检查，不反复重试；超时或限流时稍等再重画。
+- 批量审图可用 `--sheet [all|cover|ambient|location|character|cg|cutin|<key,key>]` 把多张图拼成带编号与 key 标签的网格缩略图初筛，发现疑似严重问题的再打开原图 `file` 放大确认；少量图或关键 CG 也可直接逐张打开 `file` 查看。按下文“排定与检查”的标准检查，只处理严重问题：人物、地点或物件与描述明显不符（性别、年龄、发色、服装、人数不对，多出或缺了人），CG 出场人物错误，立绘取景不是头顶到大腿中部或头被切掉，画面有文字或水印，四肢、手、脸严重畸形，透明立绘仍带背景。信纸、书页、招牌、屏幕这类本来带字的物件上出现无法辨认的伪文字不算严重问题：不少生图模型难以避免，除非用户或这张图的要求明确写了不能有，否则不为它重画。构图偏好、画风细节和轻微瑕疵不重画。
+- 有严重问题时，按问题改写这张图的提示词：先用 `--list` 取当前提示词（`prompt` 是可改的文字；CG 的出场人物说明在发送时补上，`sent` 是补上后的全文，不要把它当作改写的底稿；`@1`–`@3` 照原样保留），保留画风、用途模板与取景句（立绘的取景句逐字保留），只针对出错的部分加强或改写描述，写进文件后用 `--prompt <key> --text-file <文件>` 保存（即管理器里的“手动改写”，之后生成都发送它；`--clear` 清除），再 `--draw <key>` 重画。改写姿势与站位时用正向空间表达（写清某处空无一人以及人物实际的位置与姿态，不用“绝非站立”等否定句，以免模型画出多余人物）；遇到生僻或特定地区／年代的器物与专有名词（不限国家与文化），展开写出其具体外形、结构与材质。差分由默认图编辑生成时，发送的是 `--list` 里的 `editPrompt`，改它用 `--prompt <key>#edit`。同一张图最多改两轮；仍不行就在清单 `holds` 写明原因，继续其他图，交付时说明。只是偶发的坏图（提示词没问题）可以不改提示词直接重画一次。
+- failed 的图先看错误：缺密钥、服务连不上、工作流缺失时告诉用户去“生成与搜索”页检查，不反复重试；超时或限流时稍等再重画。
 
 立绘（含差分）绑定后裁出头像框，标准是从头顶上方一点点空白到锁骨中间（框顶留出框高 5% 的空白，播放器据此统一各人头的大小与发顶位置）：
 
-1. `--crop <key>` 从透明立绘量出发顶与头部中线，估一个锁骨位置，写出两张预览：`preview`（裁出的方形头像）和 `guides`（整张立绘，红框为裁切范围，两侧蓝色刻度每 5% 图高一格、每 10% 一条长刻度）。
-2. 打开两张预览检查：框顶在发顶上方、只留一点空白，框底在锁骨中间，头在框的左右正中。估计不对（长发遮住脖子、抬手、侧身时常见）时，从 guides 的刻度读出锁骨中间所在的图高比例，用 `--clavicle 0.31` 重算；发顶量错（如帽子、发饰、呆毛）时用 `--top`，头不在正中时用 `--center`（图宽比例），都可写像素。
-3. 预览符合标准后加 `--save` 保存，写入清单该立绘的 `crop`。输出带 `warning`（发顶贴着图顶、框顶留不出空白）时照样保存；这类立绘头部过满，严重时（头顶被切掉）按上面的严重问题重画。
+1. 多张立绘优先用批量流程：先运行 `--crop-sheet --mode guides` 一次生成全部立绘带红框与 5%/10% 蓝色刻度的拼图（单张或微调可用 `--crop <key>`，写出 `preview` 和 `guides`）。
+2. 查看拼图或单张预览：框顶在发顶上方、只留一点空白，框底在锁骨中间，头在框的左右正中。估计不对（长发遮住脖子、抬手、侧身时常见）时，从刻度读出锁骨中间所在的图高比例（`clavicle`）；发顶量错（如帽子、发饰、呆毛）时给 `top`，头不在正中时给 `center`（图宽比例），都可写像素。
+3. 把各立绘的参数写成 JSON（`{"standing:lin":{"clavicle":0.33,"center":0.5}}`），运行 `--crop-batch <crops.json> --save` 一次原子保存全部立绘的 `crop` 并输出方形头像预览拼图供统一复核（单张可用 `--crop <key> --clavicle 0.31 --save`）。输出带 `warning`（发顶贴着图顶、框顶留不出空白）时照样保存；这类立绘头部过满，严重时（头顶被切掉）按上面的严重问题重画。
 
 立绘不是透明背景时量不出发顶，`--top` 与 `--clavicle` 都要给。只能量 PNG：用宿主工具生图、登记的是 WebP 时，加 `--file <PNG 原图>`（与登记的图同尺寸）量取并保存，`--crop` 同样适用于用宿主工具生成并登记的立绘。
 
@@ -52,7 +55,7 @@ node scripts/direct-vn.mjs "work/project.json" --jobs --out "work/jobs.json"
 
 每项任务带 `taskIds`（用途与绑定目标，如 `background:locations:hall`、`standing:lin`）。某个目标因身份／地点疑点或连续失败需要暂缓时，在 `project.json` 写 `"holds":{"任务ID":"原因"}`，原因必填；它会移到 `held`，同一提示词的其他目标照常排队。解除暂缓时删掉该项。暂缓原因随清单交接，不只写在笔记中。改动已绑定图片的提示词后，程序不会自动重排；需要重绘时在 `images` 中对该图加 `replace:true`。
 
-`jobs` 每项含 `purpose`、`prompt`、`aspectRatio`（按它出图：背景、氛围图与 CG 为清单 `ratio`，封面 16:9，特写 1:1，立绘 2:3）及绑定目标，共用目标已去重。背景可包含多个 `refs`，共用同一张图；角色图片以全书最新的人物设计为准。立绘任务包含 aspectRatio="2:3"，透明方式以任务 transparentBackground 为准：Codex 内置工具将它映射为 transparent_background；透明图保存 PNG／WebP 并检查真实 alpha。清单 `transparencyMethod:"cutout"` 时，透明人物图的任务改为 `transparentBackground:false`、`removeBackground:true`，提示词要求纯色背景，保存为 PNG。生成后去背：用户指定了去背工具（如 ComfyUI 工作流）时用它；否则运行 `node scripts/cutout.mjs 原图.png --out 透明.png --preview 预览.png`，它以四边的颜色为背景色，去掉与边缘相连及被人物围住的大块背景，并把边缘像素按与背景的混合程度改为半透明、去掉背景色。命令报告四边不是纯色时重新生成；有 warnings 或预览（灰色棋盘格上的结果）里人物缺块、边缘留有背景色时，可调 `--tolerance`（默认 24 起随噪点自动增大；调大去得更多）或加 `--keep-holes`（保留被围住的同色块，如与背景同色的衣物），仍不理想就换一个与人物差别更大的背景色重新生成。去背后的 PNG 按下文转为 WebP 再登记，预览只用于检查。登记的仍须是带真实 alpha 的 PNG／WebP。返回尺寸以实际文件为准；不合比例先修正再登记，不把背景棋盘格当透明。仅生图范围比提示词范围小时，为生图清单选择对应 `chapters`（已完成提示词可作为新 input），或按用户范围从任务中选取。
+`jobs` 每项含 `purpose`、`prompt`、`aspectRatio`（按它出图：背景、氛围图与 CG 为清单 `ratio`，封面随横竖屏取 16:9 或 2:3，特写 1:1，立绘 2:3）及绑定目标，共用目标已去重。背景可包含多个 `refs`，共用同一张图；角色图片以全书最新的人物设计为准。立绘任务包含 aspectRatio="2:3"，透明方式以任务 transparentBackground 为准：Codex 内置工具将它映射为 transparent_background；透明图保存 PNG／WebP 并检查真实 alpha。清单 `transparencyMethod:"cutout"` 时，透明人物图的任务改为 `transparentBackground:false`、`removeBackground:true`，提示词要求纯色背景，保存为 PNG。生成后去背：用户指定了去背工具（如 ComfyUI 工作流）时用它；否则运行 `node scripts/cutout.mjs 原图.png --out 透明.png --preview 预览.png`，它以四边的颜色为背景色，去掉与边缘相连及被人物围住的大块背景，并把边缘像素按与背景的混合程度改为半透明、去掉背景色。命令报告四边不是纯色时重新生成；有 warnings 或预览（灰色棋盘格上的结果）里人物缺块、边缘留有背景色时，可调 `--tolerance`（默认 24 起随噪点自动增大；调大去得更多）或加 `--keep-holes`（保留被围住的同色块，如与背景同色的衣物），仍不理想就换一个与人物差别更大的背景色重新生成。去背后的 PNG 按下文转为 WebP 再登记，预览只用于检查。登记的仍须是带真实 alpha 的 PNG／WebP。返回尺寸以实际文件为准；不合比例先修正再登记，不把背景棋盘格当透明。仅生图范围比提示词范围小时，为生图清单选择对应 `chapters`（已完成提示词可作为新 input），或按用户范围从任务中选取。
 
 逐项生成，查看实际图片：背景内容、年代、可用构图与章首剧透；角色五官差异、发型完整、服装及构图；立绘另查头顶至大腿中部的完整轮廓、朝向与动作是否按描述，透明任务检查真实 alpha。检查后把成功项转为 WebP（见下段），登记尺寸与绑定。失败保留其他成功结果；在用户预算内修复，单项连续两次失败先记录并继续可完成部分，交付时说明。用户要求审批或预览时按其流程执行。
 
@@ -80,11 +83,11 @@ CG 按导演条目 ID 单独绑定，只在其正文范围显示。其余绑定�
 ]
 ```
 
-尺寸取自真实图像的检查结果，不填预期请求尺寸。可选记录生成方式 `"mode":"generate|edit|reference"` 与按模型调整后实际发送的 `"sentPrompt"`，只留在清单中，不进作品包；Gallery 与人物页仍显示规格版提示词。支持 PNG、JPEG、WebP；打包工具检查类型签名、尺寸数值与大小限制、绑定 ID，并计算内容 hash，但不解码像素验证实际尺寸，agent 需用可用图片工具核对。
+尺寸取自真实图像的检查结果，不填预期请求尺寸。可选记录生成方式 `"mode":"generate|edit|reference"` 与按模型调整后实际发送的 `"sentPrompt"`，只留在清单中，不进作品包；用宿主环境的生图工具生成时写上 `"generator":"服务或模型名"`（如 `gpt-image-1`），导出时列进作品的致谢（只写模型名，不写张数），没写的图片算“用户提供”；Gallery 与人物页仍显示规格版提示词。支持 PNG、JPEG、WebP；打包工具检查类型签名、尺寸数值与大小限制、绑定 ID，并计算内容 hash，但不解码像素验证实际尺寸，agent 需用可用图片工具核对。
 
 已绑定的立绘（含输入作品包里的）用 `{"purpose":"standing","characterId":"lin","remove":true}` 移除，或用 `"adjust":true` 加 `flip`／`crop` 只改设置、不换图；差分加 `variantId`。
 
-立绘 purpose 为 standing，原图须为约 2:3（偏差 3% 以内）的 PNG／WebP，透明任务保留原始透明通道。播放器把所有立绘按同一图片高度显示、发顶对齐，不按头大小缩放，所以各人立绘要统一取景（cowboy shot：头顶贴近图顶、画到大腿中部），取景明显不同（只到腰部、画到膝盖）的图重新生成；人物高矮只用 `stature` 表达。立绘可加 `crop:{"x":0,"y":0,"size":1024}` 指定头像在原图内的方形裁切（省略时按标准 cowboy shot 裁出头与锁骨）；每张立绘登记后按上文“用管理器的生图设置”中的头像框步骤用 `--crop` 量取并保存；保存了 crop 的立绘在播放器里改按头像框定大小与发顶（框从发顶上方一点到锁骨以上），取景不同的图也能显示成同样大的头，以及 `flip`（`left`／`none`，省略为站在右侧时镜像）。背景 `refs.scope` 为 `chapters` 或 `locations`。默认保留已经绑定的图；明确重绘／替换时在该图片项加 `"replace":true`。导出现行版本的作品包。
+立绘 purpose 为 standing，原图须为约 2:3（偏差 3% 以内）的 PNG／WebP，透明任务保留原始透明通道。播放器把所有立绘按同一图片高度显示、发顶对齐，不按头大小缩放，所以各人立绘要统一取景（cowboy shot：头顶贴近图顶、画到大腿中部），取景明显不同（只到腰部、画到膝盖）的图重新生成；人物高矮只用 `stature` 表达。立绘可加 `crop:{"x":0,"y":0,"size":1024}` 指定头像在原图内的方形裁切（省略时按标准 cowboy shot 裁出头与锁骨）；每张立绘登记后按上文“用管理器的生图设置”中的头像框步骤用 `--crop` 量取并保存；保存了 crop 的立绘在播放器里改按头像框定大小与发顶（框从发顶上方一点到锁骨以上），取景不同的图也能显示成同样大的头，以及 `flip`（`left`／`none`，省略为站在右侧时镜像）。背景 `refs.scope` 为 `ambients` 或 `locations`。默认保留已经绑定的图；明确重绘／替换时在该图片项加 `"replace":true`。导出现行版本的作品包。
 
 ```sh
 node scripts/direct-vn.mjs "work/project.json" --out "work/story.vn.zip"
@@ -93,8 +96,10 @@ node scripts/direct-vn.mjs "work/project.json" --out "work/story.vn.zip"
 工具复用播放器导出器写入正文、Director、图片及绑定；不要用通用 ZIP 工具重新压缩。每轮补图后重新导出，重新列任务时只会出现尚缺的绑定。保留本地制作清单与原图，不将密钥写入作品包。
 
 
-CG 任务 purpose 为 `cg`，沿用背景尺寸／工具配置，refs 为 `[{"scope":"cgs","id":"ch01.cg01"}]`。按导演选定场面检查构图，人物外貌衣着与已有设计一致，画面适合其显示范围和阅读节奏。上传登记使用同样 purpose／refs，replace:true 明确替换该 CG；不与背景按提示词合并。背景与 CG 可用匹配 refs 的 remove:true 移除。CG 不进入 Gallery。
+CG 任务 purpose 为 `cg`，沿用背景尺寸／工具配置，refs 为 `[{"scope":"cgs","id":"ch01.cg01"}]`。按导演选定场面检查构图，人物外貌衣着与已有设计一致，画面适合其显示范围和阅读节奏。上传登记使用同样 purpose／refs，replace:true 明确替换该 CG；不与背景按提示词合并。背景与 CG 可用匹配 refs 的 remove:true 移除。
 
 差分任务带 `variantId`：`referenceFile` 是已绑定的默认图（人物为默认立绘，地点为主图），`editPrompt` 是编辑指令，`prompt` 是差分完整设计的文生图提示词（生成方式见上文）。用户提供 ComfyUI 时，编辑须是带图像输入的工作流。人物差分沿用 `standing` 用途；地点差分为 `background`，refs 为 `[{"scope":"variants","id":"差分ID"}]`。默认图绑定前差分任务暂缓，所以先完成默认图。生成后检查人物身份特征与默认图一致、地点空间布局与主图一致。登记时人物差分加 `"variantId":"差分ID"`（如 `{"file":"images/lin-wet.png","purpose":"standing","width":1024,"height":1536,"characterId":"lin","variantId":"ch03.lin-wet"}`），地点差分用 variants refs；replace／remove 规则同上。
 
-作品封面任务 purpose 为 `title-card`，16:9，沿用背景工具配置与人物画风，没有 refs；图上不要出现文字。登记为 `{"file":"images/cover.png","purpose":"title-card","width":1600,"height":900}`，replace:true 替换，`{"purpose":"title-card","remove":true}` 移除。
+作品封面任务 purpose 为 `title-card`，画幅随作品方向取 16:9 或 2:3，沿用背景工具配置与人物画风，没有 refs；图上不要出现文字。登记为 `{"file":"images/cover.png","purpose":"title-card","width":1600,"height":900}`，replace:true 替换，`{"purpose":"title-card","remove":true}` 移除。
+
+开启结尾图（清单 `options.endCard:true`）时另有 purpose 为 `end-card` 的任务：读完全书后结尾卡片的背景，画幅同封面，沿用人物画风，没有 refs；图上不要出现文字。登记、替换与移除同封面，purpose 写 `end-card`。

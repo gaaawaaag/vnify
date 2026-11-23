@@ -92,7 +92,21 @@ A designed cover illustration for a visual novel, also shown as its title screen
 
 ⟪style⟫
 
-Compose it like a book cover: one clear focal subject, a restrained and unified colour scheme, and a calm, uncluttered lower third. Keep detail purposeful rather than dense, and extend the image naturally to every edge.
+Compose it like a book cover: one clear focal subject and a restrained, unified colour scheme. Keep detail purposeful rather than dense, and extend the image naturally to every edge.
+
+No interface elements, text, title lettering, logo, borders or watermark.
+<!-- /prompt -->
+
+## image11.end-card
+
+<!-- prompt:image11.end-card -->
+A closing illustration for a visual novel, shown behind its end screen after the last chapter.
+
+⟪object⟫
+
+⟪style⟫
+
+Use a restrained, unified colour scheme, keep detail purposeful rather than dense, and extend the image naturally to every edge.
 
 No interface elements, text, title lettering, logo, borders or watermark.
 <!-- /prompt -->

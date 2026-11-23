@@ -1072,7 +1072,7 @@ button:is(:hover, :focus-visible) > .icon-back {
   gap: 10px;
 }
 
-#book-info-dialog input[type="text"] {
+#book-info-dialog input[type="text"], #book-info-blurb {
   display: block;
   box-sizing: border-box;
   margin-top: 10px;
@@ -1083,7 +1083,68 @@ button:is(:hover, :focus-visible) > .icon-back {
   font: inherit;
 }
 
-#book-info-error {
+#review-book {
+  margin: 0 0 14px;
+  color: var(--muted);
+}
+
+/* Five diamonds, as on the end card. */
+.diamond-rating {
+  display: flex;
+  gap: 8px;
+}
+
+.diamond-rating button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: var(--cursor-pointer);
+}
+
+.diamond-rating i {
+  width: 12px;
+  height: 12px;
+  transform: rotate(45deg);
+  border: 1.3px solid var(--muted);
+  transition: background-color .15s, border-color .15s;
+}
+
+.diamond-rating button.on i {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+#review-text {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 14px;
+  padding: 9px 10px;
+  resize: vertical;
+  background: var(--field);
+  color: var(--text);
+  border: 1px solid var(--line);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+#review-dialog .dialog-footer {
+  gap: 10px;
+}
+
+#book-info-blurb {
+  width: 100%;
+  resize: vertical;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+#review-error, #book-info-error {
   margin: 0;
   font-size: 13px;
   color: var(--error);
@@ -2227,6 +2288,55 @@ select {
   display: none;
 }
 
+/* Reading aloud: a speaker with waves when on, crossed out when off; it breathes while a line's voice is on its way. */
+#voice-toggle .voice-off, #voice-toggle[aria-pressed="false"] .voice-on {
+  display: none;
+}
+
+#voice-toggle[aria-pressed="false"] .voice-off {
+  display: block;
+}
+
+#voice-toggle.is-waiting[aria-pressed="true"] svg {
+  animation: voice-waiting .9s ease-in-out infinite alternate;
+}
+
+@keyframes voice-waiting {
+  from { opacity: 1; }
+  to { opacity: .25; }
+}
+
+/* Auto play: while on, an arc circles the icon. */
+#reader-quick #auto {
+  position: relative;
+}
+
+#reader-quick #auto[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--quick-icon-size) + 4px);
+  height: calc(var(--quick-icon-size) + 4px);
+  margin: calc(var(--quick-icon-size) / -2 - 2px) 0 0 calc(var(--quick-icon-size) / -2 - 2px);
+  box-sizing: border-box;
+  border: 1.5px solid transparent;
+  border-top-color: currentColor;
+  border-right-color: currentColor;
+  border-radius: 50%;
+  animation: auto-turning 1.6s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes auto-turning {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #voice-toggle.is-waiting[aria-pressed="true"] svg { animation: none; opacity: .5; }
+  #reader-quick #auto[aria-pressed="true"]::after { animation: none; border-color: currentColor; opacity: .5; }
+}
+
 /* Hidden dialogue (↓ or its button) leaves the picture, figures and close-up; any click or key brings it back. */
 #reader #reading-stack, #reader-scrim {
   transition: opacity .25s ease, visibility .25s;
@@ -2421,8 +2531,19 @@ select {
   height: var(--figure-height);
   width: auto;
   transform: translateX(-50%);
-  transition: left .35s ease, top .35s ease, height .35s ease, filter .25s ease;
-  animation: standing-enter .3s ease both;
+  /* Figures slide slowly to new places (after --move-delay while someone leaves) and fade in after --enter-delay
+   * (src/ui/dialogue-avatar.js); a figure still fading in takes its size and height at once. */
+  transition: left .7s cubic-bezier(.45, .05, .25, 1) var(--move-delay, 0ms), top .7s cubic-bezier(.45, .05, .25, 1),
+    height .7s cubic-bezier(.45, .05, .25, 1), filter .35s ease;
+  animation: standing-enter .5s ease-out var(--enter-delay, 0ms) both;
+}
+
+#standing-portrait .standing-figure.is-entering {
+  transition: filter .35s ease;
+}
+
+#standing-portrait .standing-figure.is-leaving {
+  transition: none;
 }
 
 /* The stage's size probes (src/ui/dialogue-avatar.js): boxes from the stage top, measured and never seen. */
@@ -2466,7 +2587,7 @@ select {
 }
 
 @media(prefers-reduced-motion:reduce) {
-  #standing-portrait .standing-figure {
+  #standing-portrait .standing-figure, #standing-portrait .standing-figure.is-entering {
     transition: none;
     animation: none;
   }
@@ -3177,31 +3298,14 @@ body:has(#welcome[hidden]) > #home-header {
   position: fixed;
   inset: 0;
   z-index: 20;
+  overflow: hidden;
   background: rgb(var(--shadow-rgb));
+  color: var(--title-screen-text);
   outline: none;
 }
 
-#title-screen-content {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-#title-screen-image {
-  position: absolute;
-  inset: 0;
-  background-position: center;
-  background-size: cover;
-  background-repeat: no-repeat;
-}
-
-#title-screen.book-cover #title-screen-image, #title-screen.fit-whole #title-screen-image {
-  background-size: contain;
-}
-
-#title-screen.fit-whole::before {
+/* The cover stands whole beside the text column, over a blurred, darkened copy of itself. */
+#title-screen.has-image::before {
   content: "";
   position: absolute;
   inset: -40px;
@@ -3209,33 +3313,50 @@ body:has(#welcome[hidden]) > #home-header {
   filter: var(--title-screen-backdrop-filter);
 }
 
-/* An original cover already carries the title. */
-#title-screen.book-cover #title-screen-name,
-#title-screen.book-cover #title-screen-author {
-  visibility: hidden;
+#title-screen-content {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(28px, 5vw, 72px);
+  padding: clamp(28px, 7vh, 72px) clamp(28px, 8vw, 110px);
+  overflow-y: auto;
 }
 
-#title-screen.has-image #title-screen-content::after {
-  content: "";
-  position: absolute;
-  inset: 45% 0 0;
-  background: linear-gradient(to bottom, transparent, var(--title-screen-scrim));
-  pointer-events: none;
+#title-screen:not(.has-image) #title-screen-content {
+  grid-template-columns: minmax(0, 560px);
+  justify-content: center;
+}
+
+#title-screen-image {
+  display: none;
+  width: min(46vw, calc(min(82vh, 640px) * var(--cover-ratio, 1.78)));
+  aspect-ratio: var(--cover-ratio, 1.78);
+  justify-self: end;
+  border-radius: 4px;
+  background: center / cover no-repeat;
+  box-shadow: var(--title-screen-cover-shadow);
+}
+
+#title-screen.has-image #title-screen-image {
+  display: block;
 }
 
 .title-screen-text {
   position: relative;
-  z-index: 1;
-  max-width: min(90vw, 960px);
-  padding: 0 24px clamp(48px, 12vh, 120px);
-  text-align: center;
-  color: var(--title-screen-text);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  max-width: 480px;
+  text-shadow: var(--title-screen-shadow);
 }
 
 #title-screen-name {
   margin: 0;
   font-family: var(--title-font);
-  font-size: clamp(32px, 6vw, 64px);
+  font-size: clamp(26px, 3.4vw, 44px);
   font-weight: 700;
   line-height: 1.25;
   letter-spacing: .08em;
@@ -3243,23 +3364,754 @@ body:has(#welcome[hidden]) > #home-header {
 }
 
 #title-screen-author {
-  margin: clamp(12px, 2.5vh, 20px) 0 0;
+  margin: -6px 0 0;
   font-family: var(--title-font);
-  font-size: clamp(15px, 2vw, 20px);
+  font-size: 15px;
   letter-spacing: .12em;
+  color: var(--title-screen-hint);
   overflow-wrap: anywhere;
 }
 
-#title-screen.has-image #title-screen-name,
-#title-screen.has-image #title-screen-author,
-#title-screen.has-image #title-screen-hint {
-  text-shadow: var(--title-screen-shadow);
+.title-screen-rule {
+  width: 40px;
+  height: 1px;
+  background: currentColor;
+  opacity: .3;
+}
+
+#title-screen-blurb {
+  max-height: 11.4em;
+  margin: 0;
+  padding-right: 6px;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.9;
+  white-space: pre-line;
+  color: var(--title-screen-hint);
+  scrollbar-width: thin;
+}
+
+#title-screen-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: .08em;
+  color: var(--title-screen-hint);
+}
+
+#title-screen-state[hidden], #title-screen-actions[hidden], #title-screen-hint[hidden] {
+  display: none;
+}
+
+.title-screen-dot {
+  width: 5px;
+  height: 5px;
+  transform: rotate(45deg);
+  background: var(--title-screen-accent);
+}
+
+.title-screen-sep {
+  opacity: .5;
+}
+
+.title-screen-bar {
+  position: relative;
+  width: 64px;
+  height: 2px;
+  background: var(--title-screen-button-line);
+}
+
+.title-screen-bar b {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--title-screen-text);
+}
+
+#title-screen-state .mini-diamonds i {
+  border-color: var(--title-screen-hint);
+}
+
+#title-screen-state .mini-diamonds i.on {
+  border-color: var(--title-screen-accent);
+  background: var(--title-screen-accent);
 }
 
 #title-screen-hint {
-  margin: clamp(24px, 5vh, 48px) 0 0;
+  margin: 6px 0 0;
   font-size: 12px;
   letter-spacing: 4px;
   color: var(--title-screen-hint);
 }
 
+#title-screen-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+#title-screen-actions button {
+  padding: 9px 22px;
+  border: 1px solid var(--title-screen-button-line);
+  border-radius: 999px;
+  background: var(--title-screen-button);
+  color: inherit;
+  font: 13px var(--ui-font);
+  letter-spacing: .15em;
+  text-shadow: none;
+  cursor: var(--cursor-pointer);
+}
+
+#title-screen-actions button.primary {
+  border-color: transparent;
+  background: var(--title-screen-primary);
+  color: var(--title-screen-primary-text);
+}
+
+/* Narrow or tall screens: the cover above, the column below, scrolling together. */
+@media (max-width: 700px), (orientation: portrait) and (max-width: 1000px) {
+  #title-screen-content {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    align-content: center;
+    gap: 24px;
+    padding: 36px 20px 28px;
+  }
+
+  #title-screen-image {
+    width: min(100%, calc(46vh * var(--cover-ratio, 1.78)));
+    justify-self: center;
+  }
+
+  .title-screen-text {
+    max-width: none;
+    gap: 14px;
+  }
+
+  #title-screen-blurb {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+
+/* The end card (src/ui/end-card.js): a blurred end picture or cover, everything in one centred column. */
+#end-card {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  background: var(--end-card-background);
+  color: var(--title-screen-text);
+  outline: none;
+}
+
+#end-card-image {
+  position: absolute;
+  inset: -40px;
+  background: center / cover no-repeat;
+  filter: var(--end-card-backdrop-filter);
+}
+
+/* The book's own end picture keeps its detail, darkened, with a soft shade behind the column. */
+#end-card.own-image #end-card-image {
+  inset: 0;
+  filter: var(--end-card-picture-filter);
+}
+
+#end-card.own-image::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--end-card-picture-shade);
+  pointer-events: none;
+}
+
+#end-card-content {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(14px, 2.6vh, 22px);
+  padding: 24px 16px;
+  overflow-y: auto;
+  text-align: center;
+}
+
+#end-card-credits {
+  position: absolute;
+  z-index: 2;
+  right: 32px;
+  bottom: 26px;
+  width: auto;
+  margin: 0;
+  padding: 2px 0;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  background: none;
+  color: var(--muted);
+  font: 13px var(--ui-font);
+  letter-spacing: .2em;
+  opacity: .8;
+}
+
+#end-card-credits:hover, #end-card-credits:focus-visible {
+  opacity: 1;
+}
+
+.end-card-mark {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: .5em;
+  text-indent: .5em;
+  color: var(--end-card-soft);
+}
+
+.end-card-mark::before, .end-card-mark::after {
+  content: "";
+  width: 48px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--end-card-line));
+}
+
+.end-card-mark::after {
+  transform: scaleX(-1);
+}
+
+.end-card-mark i {
+  width: 6px;
+  height: 6px;
+  transform: rotate(45deg);
+  background: currentColor;
+}
+
+#end-card-name {
+  margin: 0;
+  font-family: var(--title-font);
+  font-size: clamp(28px, 4.4vw, 52px);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: .08em;
+  overflow-wrap: anywhere;
+  text-shadow: var(--title-screen-shadow);
+}
+
+#end-card-author {
+  margin: -8px 0 0;
+  font-family: var(--title-font);
+  font-size: 15px;
+  letter-spacing: .12em;
+  color: var(--end-card-soft);
+  overflow-wrap: anywhere;
+}
+
+#end-card-stats {
+  display: flex;
+  justify-content: center;
+  margin: 0;
+}
+
+#end-card-stats[hidden] {
+  display: none;
+}
+
+.end-card-stat {
+  padding: 0 clamp(12px, 2vw, 22px);
+}
+
+.end-card-stat + .end-card-stat {
+  border-left: 1px solid var(--end-card-line);
+}
+
+.end-card-stat dt {
+  margin-bottom: 6px;
+  font-size: 11px;
+  letter-spacing: .2em;
+  color: var(--end-card-faint);
+}
+
+.end-card-stat dd {
+  margin: 0;
+  font-size: clamp(17px, 2vw, 20px);
+  letter-spacing: .04em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.end-card-stat dd small {
+  margin: 0 2px;
+  font-size: 12px;
+  color: var(--end-card-soft);
+}
+
+#end-card-rating {
+  display: flex;
+  gap: 10px;
+}
+
+#end-card-rating button {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: var(--cursor-pointer);
+}
+
+#end-card-rating i {
+  width: 12px;
+  height: 12px;
+  transform: rotate(45deg);
+  border: 1.3px solid var(--end-card-soft);
+  transition: background-color .15s, border-color .15s, transform .15s;
+}
+
+#end-card-rating button.on i {
+  background: var(--end-card-accent);
+  border-color: var(--end-card-accent);
+}
+
+#end-card-rating button:hover i, #end-card-rating button:focus-visible i {
+  transform: rotate(45deg) scale(1.15);
+}
+
+#end-card-review {
+  width: min(100%, 440px);
+  height: 76px;
+  padding: 10px 12px;
+  resize: none;
+  border: 1px solid var(--end-card-field-line);
+  border-radius: 10px;
+  background: var(--end-card-field);
+  color: inherit;
+  font: 14px/1.7 var(--ui-font);
+  outline: none;
+}
+
+#end-card-review:focus {
+  border-color: var(--end-card-soft);
+}
+
+#end-card-review::placeholder {
+  color: var(--end-card-faint);
+}
+
+.end-card-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.end-card-actions button {
+  padding: 9px 22px;
+  border: 1px solid var(--end-card-field-line);
+  border-radius: 999px;
+  background: var(--end-card-button);
+  color: inherit;
+  font: 13px var(--ui-font);
+  letter-spacing: .15em;
+  cursor: var(--cursor-pointer);
+}
+
+.end-card-actions button.primary {
+  border-color: transparent;
+  background: var(--end-card-primary);
+  color: var(--end-card-primary-text);
+}
+
+/* Shelf heading and the moon tab: the books or the reading statistics (src/ui/shelf-stats.js). */
+#shelf-tab {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: var(--cursor-pointer);
+}
+
+#shelf.is-stats #shelf-heading, #shelf.is-stats #shelf-count {
+  color: var(--home-faint);
+}
+
+#stats-tab {
+  width: 34px;
+  height: 32px;
+  border: 0;
+  color: var(--home-faint);
+}
+
+#stats-tab svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 1.3;
+}
+
+#stats-tab[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--home-icon-hover);
+}
+
+#shelf.is-stats .shelf-views, #shelf.is-stats .shelf-actions, #shelf.is-stats #shelf-grid, #shelf.is-stats #shelf-list,
+#shelf.is-stats #shelf-pager {
+  display: none;
+}
+
+#stats-years {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+#stats-years[hidden] {
+  display: none;
+}
+
+#stats-years button {
+  padding: 5px 9px;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--home-faint);
+  font: 12px var(--home-mono);
+  cursor: var(--cursor-pointer);
+}
+
+#stats-years button[aria-pressed="true"] {
+  border-color: var(--home-icon-line);
+  background: var(--home-cell-hover);
+  color: var(--text);
+}
+
+#shelf-stats {
+  padding: 22px 0 8px;
+  border-top: 1px solid var(--home-rule);
+}
+
+.stats-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin: 4px 0 0;
+}
+
+.stats-sum {
+  padding: 0 20px;
+}
+
+.stats-sum:first-child {
+  padding-left: 0;
+}
+
+.stats-sum + .stats-sum {
+  border-left: 1px solid var(--home-rule);
+}
+
+.stats-sum dt {
+  margin-bottom: 10px;
+  font-size: 11px;
+  letter-spacing: .25em;
+  color: var(--home-faint);
+}
+
+.stats-sum dd {
+  margin: 0;
+  font: 300 28px var(--home-mono);
+  white-space: nowrap;
+}
+
+.stats-sum dd small, .stats-time small {
+  margin: 0 3px;
+  font: 12px var(--home-sans);
+  color: var(--muted);
+}
+
+.stats-section {
+  margin-top: 30px;
+}
+
+.stats-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: .25em;
+  color: var(--home-faint);
+}
+
+.stats-section h3::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  transform: rotate(45deg);
+  background: currentColor;
+}
+
+.stats-heat-scroll {
+  overflow-x: auto;
+  padding: 2px 2px 6px;
+  scrollbar-width: none;
+}
+
+.stats-heat {
+  --cell: 13px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: 16px repeat(7, var(--cell));
+  gap: 4px;
+  width: max-content;
+}
+
+.stats-month {
+  grid-row: 1;
+  font: 10px var(--home-mono);
+  color: var(--home-faint);
+  white-space: nowrap;
+}
+
+/* Moon phases: a dim disc lit from the right, a thin crescent at level 1 up to full at 4. */
+.stats-heat i, .stats-legend i {
+  --k: 0;
+  width: var(--cell);
+  height: var(--cell);
+  border-radius: 50%;
+  background: var(--stats-disc);
+  box-shadow: inset calc(var(--k) * -1 * var(--cell)) 0 0 0 var(--stats-moon);
+}
+
+.stats-heat i[data-l="1"], .stats-legend i[data-l="1"] { --k: .24; }
+.stats-heat i[data-l="2"], .stats-legend i[data-l="2"] { --k: .46; }
+.stats-heat i[data-l="3"], .stats-legend i[data-l="3"] { --k: .7; }
+
+.stats-heat i[data-l="4"], .stats-legend i[data-l="4"] {
+  background: var(--stats-moon);
+  box-shadow: none;
+}
+
+.stats-heat i.outside {
+  visibility: hidden;
+}
+
+.stats-heat i[data-l] {
+  cursor: var(--cursor-pointer);
+}
+
+.stats-heat i.today, .stats-heat i[data-l]:hover {
+  outline: 1px solid var(--muted);
+  outline-offset: 1px;
+}
+
+.stats-legend {
+  --cell: 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  font: 10px var(--home-mono);
+  color: var(--home-faint);
+}
+
+.stats-tip {
+  margin-left: auto;
+  padding-left: 16px;
+  font: 12px var(--home-sans);
+  color: var(--muted);
+  text-align: right;
+}
+
+.stats-books {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.stats-books th {
+  padding: 0 10px 10px;
+  border-bottom: 1px solid var(--home-rule);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.stats-books th button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--home-faint);
+  font-size: 11px;
+  letter-spacing: .2em;
+  cursor: var(--cursor-pointer);
+}
+
+.stats-books th[aria-sort="descending"] button {
+  color: var(--text);
+}
+
+.stats-books th[aria-sort="descending"] button::after {
+  content: " ↓";
+  letter-spacing: 0;
+}
+
+.stats-books td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--home-rule);
+  white-space: nowrap;
+}
+
+.stats-books th:first-child, .stats-books td:first-child {
+  padding-left: 0;
+}
+
+.stats-books .stats-name {
+  width: 40%;
+  white-space: normal;
+}
+
+.stats-open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: var(--cursor-pointer);
+}
+
+.stats-open:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.stats-author {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--home-faint);
+}
+
+.stats-books .is-removed .stats-name {
+  color: var(--home-faint);
+}
+
+.stats-time {
+  font: 13px var(--home-mono);
+}
+
+.stats-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stats-line > span:first-child {
+  min-width: 88px;
+}
+
+.stats-books th.stats-done {
+  padding-right: 0;
+  text-align: right;
+}
+
+.stats-books td.stats-done {
+  padding-right: 0;
+}
+
+.stats-bar {
+  position: relative;
+  flex: 1;
+  min-width: 60px;
+  height: 3px;
+  background: var(--stats-bar);
+}
+
+.stats-bar b {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--stats-bar-fill);
+}
+
+.stats-done {
+  text-align: right;
+}
+
+.stats-books td.stats-done {
+  font: 13px var(--home-mono);
+  color: var(--muted);
+}
+
+.stats-none {
+  color: var(--home-faint);
+}
+
+/* Five small diamonds: a book's rating in the statistics and, when asked for, on the shelf. */
+.mini-diamonds {
+  display: inline-flex;
+  gap: 4px;
+  vertical-align: middle;
+}
+
+.mini-diamonds i {
+  width: 7px;
+  height: 7px;
+  transform: rotate(45deg);
+  border: 1px solid var(--home-faint);
+}
+
+.mini-diamonds i.on {
+  border-color: var(--stats-moon);
+  background: var(--stats-moon);
+}
+
+@media(max-width:600px) {
+  .stats-summary {
+    grid-template-columns: 1fr 1fr;
+    row-gap: 18px;
+  }
+
+  .stats-sum {
+    padding: 0 14px;
+  }
+
+  .stats-sum:nth-child(odd) {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .stats-sum dd {
+    font-size: 22px;
+  }
+
+  .stats-heat {
+    --cell: 10px;
+    gap: 3px;
+  }
+
+  .stats-books .stats-rate, .stats-books .stats-done, .stats-bar {
+    display: none;
+  }
+
+  .stats-books td {
+    padding: 10px 6px;
+  }
+
+  .stats-line > span:first-child {
+    min-width: 0;
+  }
+
+  .stats-tip {
+    flex-basis: 100%;
+    padding: 6px 0 0;
+    text-align: left;
+  }
+
+  .stats-legend {
+    flex-wrap: wrap;
+  }
+}

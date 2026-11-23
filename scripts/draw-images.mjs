@@ -9,6 +9,13 @@
 //   node scripts/draw-images.mjs <project.json> --draw <key,key…> | --missing [--limit N]
 //   node scripts/draw-images.mjs <project.json> --prompt <key>[#edit] (--text "…" | --text-file <file> | --clear)
 //   node scripts/draw-images.mjs <project.json> --crop <key> [--clavicle Y] [--top Y] [--center X] [--file <png>] [--preview <file>] [--save]
+//   node scripts/draw-images.mjs <project.json> --sheet [all|<category>|<key,key…>] [--cols N] [--per-page N] [--out <dir-or-png>]
+//   node scripts/draw-images.mjs <project.json> --crop-sheet [<key,key…>] [--mode guides|preview] [--cols N] [--per-page N] [--out <dir-or-png>]
+//   node scripts/draw-images.mjs <project.json> --crop-batch <crops.json> [--save] [--cols N] [--per-page N] [--out <dir-or-png>]
+//   node scripts/draw-images.mjs <project.json> --search "<English words>" [--sources pexels,pixabay] --out <hits.json>
+//   node scripts/draw-images.mjs <project.json> --use <key> --hits <hits.json> --n <n>
+// --search looks in the photo libraries (keys in the workbench) in the book's orientation; --use binds hit n (from 0) to a
+// background or ambient picture, credited by library and author.
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -18,18 +25,22 @@ import {readDirectors} from '../src/core/director.js';
 import {validateImagePresets,validateImageScheme,imageUse,presetName,apiSecret,canEdit,USE_LABELS} from '../src/production/image-presets.js';
 import {planDrawing} from '../src/production/image-generation.js';
 import {chosenPrompt} from '../src/production/prompt-formats.js';
-import {setPromptOverride,adjustPortrait} from '../src/production/director-edits.js';
+import {setPromptOverride,adjustPortrait,adjustPortraitsBatch} from '../src/production/director-edits.js';
 import {readGenerated} from '../src/production/generation-log.js';
 import {secretStatus} from '../src/production/secrets.js';
 import {decodePng,encodePng} from '../src/production/png.js';
 import {imageType} from '../src/reader/backgrounds.js';
 import {measurePortrait,avatarCropFor,cropPixels,guidePixels} from '../src/production/avatar-crop.js';
+import {decodeToRgba,renderContactSheet} from '../src/production/contact-sheet.js';
 import {CROP} from '../src/reader/figure-layout.js';
 import {createGeneration} from '../src/server/generation.mjs';
+import {searchImages,bindHit} from '../src/production/image-library.js';
+import {IMAGE_SEARCH_SOURCES} from '../src/production/image-search.js';
 
 const args=process.argv.slice(2);
 const flag=name=>args.includes(name);
 const option=name=>{const i=args.indexOf(name);return i>=0&&i+1<args.length?args[i+1]:undefined;};
+const optionalValue=name=>{const v=option(name);return v!==undefined&&!v.startsWith('--')?v:undefined;};
 const projectPath=args[0]&&!args[0].startsWith('--')?path.resolve(args[0]):null;
 if(!projectPath){console.error('用法见脚本开头：node scripts/draw-images.mjs <project.json> --list | --draw … | --prompt … | --crop …');process.exit(2);}
 // The workbench's presets live at the production environment's root, beside presets.json.
@@ -110,6 +121,25 @@ async function main() {
     return;
   }
 
+  if(flag('--search')) {
+    const out=option('--out'),sources=option('--sources')?.split(',').map(x=>x.trim()).filter(Boolean)??[...IMAGE_SEARCH_SOURCES];
+    if(!out||sources.some(x=>!IMAGE_SEARCH_SOURCES.includes(x)))throw new Error(`写 --out <hits.json>；--sources 只能是 ${IMAGE_SEARCH_SOURCES.join('、')}。`);
+    const ratio=loaded.project.options?.ratio??'16:9',[w,h]=String(ratio).split(':').map(Number);
+    const found=await searchImages(String(option('--search')??''),{sources,orientation:w<h?'portrait':'landscape'});
+    await writeFile(path.resolve(out),JSON.stringify(found,null,2)+'\n');
+    print({notes:found.notes,hits:found.results.map((hit,n)=>({n,source:hit.source,name:hit.name,author:hit.author,size:`${hit.width}×${hit.height}`}))});
+    return;
+  }
+  if(flag('--use')) {
+    const key=option('--use'),found=images(catalog).find(x=>x.image.key===key);
+    if(!found||!['ambient','location'].includes(found.asset.cat)||found.image.variantId)throw new Error(`图库图片只能绑定到氛围或地点背景：${key}`);
+    const {results}=JSON.parse(await readFile(String(option('--hits')),'utf8')),hit=results?.[Number(option('--n'))];
+    if(!hit)throw new Error(`${option('--hits')} 里没有第 ${option('--n')} 条结果。`);
+    const {file}=await bindHit(projectPath,found.image.target,hit);
+    print({ok:true,key,file:path.resolve(path.dirname(projectPath),file),credit:`${hit.source} · ${hit.author}`});
+    return;
+  }
+
   if(flag('--prompt')) {
     // <key>#edit is a variant's edit instruction, sent when the preset edits the default image.
     const key=option('--prompt'),[target,part]=String(key).split('#'),found=images(catalog).find(x=>x.image.key===target);
@@ -155,7 +185,149 @@ async function main() {
       crop,preview,guides,saved:flag('--save')});
     return;
   }
-  throw new Error('写 --presets、--list、--draw／--missing、--prompt 或 --crop。');
+
+  /** Helper: reads raw bytes of any bound image from loaded project assets. */
+  const boundBytesOf=async({asset,image})=>{
+    const id=image.bound.imageId;
+    const rec=asset.cat==='character'?loaded.characterImages.images[id]:loaded.backgrounds.images[id];
+    if(!rec?.blob)throw new Error(`找不到已绑定图片数据：${image.key}`);
+    return new Uint8Array(await rec.blob.arrayBuffer());
+  };
+  /** Helper: writes paginated contact sheets and returns page metadata. */
+  const writeSheets=async(entries,baseName,{cols,perPage,tileWidth,tileHeight,outOpt})=>{
+    const outBase=outOpt?path.resolve(outOpt):path.join(path.dirname(projectPath),'review',baseName);
+    const isPng=/\.png$/i.test(outBase);
+    const dir=isPng?path.dirname(outBase):outBase;
+    const stem=isPng?path.basename(outBase).replace(/\.png$/i,''):baseName;
+    await mkdir(dir,{recursive:true});
+    const sheets=[];
+    const pages=Math.ceil(entries.length/perPage);
+    for(let p=0;p<pages;p++) {
+      const slice=entries.slice(p*perPage,(p+1)*perPage);
+      const sheetRgba=renderContactSheet(slice.map(e=>({label:e.label,image:e.rgba})),{cols,tileWidth,tileHeight});
+      const file=isPng&&pages===1?outBase:path.join(dir,`${stem}-${String(p+1).padStart(2,'0')}.png`);
+      await writeFile(file,encodePng(sheetRgba));
+      sheets.push({file,tiles:slice.map(e=>e.meta)});
+    }
+    return sheets;
+  };
+  const gridOption=(name,fallback)=>{const v=option(name);if(v===undefined)return fallback;const n=Number(v);if(!Number.isInteger(n)||n<1)throw new Error(`${name} 须为正整数。`);return n;};
+
+  const standingLabel=key=>{
+    const rest=key.replace(/^standing:/,'');
+    const [charId,variantId]=rest.split(':');
+    return variantId?(variantId.startsWith(`${charId}.`)?variantId:rest):charId;
+  };
+  if(flag('--sheet')) {
+    const filter=optionalValue('--sheet')??'all';
+    const cols=gridOption('--cols',4),perPage=gridOption('--per-page',16);
+    const allBound=images(catalog).filter(x=>x.image.bound);
+    const categories=new Set(['cover','ambient','location','character','cg','cutin']);
+    let selected=allBound;
+    if(filter!=='all') {
+      if(filter==='standing')selected=allBound.filter(x=>x.asset.cat==='character');
+      else if(filter==='background')selected=allBound.filter(x=>['ambient','location'].includes(x.asset.cat));
+      else if(categories.has(filter))selected=allBound.filter(x=>x.asset.cat===filter);
+      else {
+        const wanted=new Set(filter.split(',').map(s=>s.trim()).filter(Boolean));
+        selected=allBound.filter(x=>wanted.has(x.image.key));
+      }
+    }
+    if(!selected.length)throw new Error(`没有匹配 "${filter}" 的已绑定图片。`);
+    const log=await readGenerated(projectPath);
+    const entries=[];
+    for(let i=0;i<selected.length;i++) {
+      const x=selected[i];
+      const rgba=await decodeToRgba(await boundBytesOf(x));
+      const shortKey=x.image.key.startsWith('standing:')?`st:${standingLabel(x.image.key)}`
+        :x.image.key.replace(/^background:/,'bg:').replace(/^cg:cgs:/,'cg:');
+      entries.push({label:`${i+1} ${shortKey}`,rgba,meta:{n:i+1,key:x.image.key,name:nameOf(x),category:x.asset.cat,
+        size:`${x.image.bound.width}×${x.image.bound.height}`,file:fileOf(log,x.image)}});
+    }
+    const sheets=await writeSheets(entries,'sheet',{cols,perPage,tileWidth:320,tileHeight:320,outOpt:option('--out')});
+    print({total:entries.length,sheets});
+    return;
+  }
+
+  if(flag('--crop-sheet')) {
+    const filter=optionalValue('--crop-sheet');
+    const mode=option('--mode')??'guides';
+    if(!['guides','preview'].includes(mode))throw new Error('--mode 只能是 guides 或 preview。');
+    const cols=gridOption('--cols',4),perPage=gridOption('--per-page',16);
+    let selected=images(catalog).filter(x=>x.asset.cat==='character'&&x.image.bound);
+    if(filter&&filter!=='all') {
+      const wanted=new Set(filter.split(',').map(s=>s.trim()).filter(Boolean));
+      selected=selected.filter(x=>wanted.has(x.image.key));
+    }
+    if(!selected.length)throw new Error('没有可检查头像裁切的已绑定立绘。');
+    const entries=[];
+    for(let i=0;i<selected.length;i++) {
+      const x=selected[i],bound=x.image.bound;
+      const rgba=await decodeToRgba(await boundBytesOf(x));
+      let crop=bound.crop??null,estimated=false,top=null,clavicle=null,center=null,warning=null;
+      if(!crop) {
+        try {
+          const m=measurePortrait(rgba);
+          top=+(m.top/rgba.height).toFixed(3);center=+(m.center/rgba.width).toFixed(3);
+          if(m.clavicle!=null){clavicle=+(m.clavicle/rgba.height).toFixed(3);crop=avatarCropFor(rgba,m);estimated=true;}
+          else warning='估不出锁骨位置，请看刻度后指定 clavicle';
+        } catch(e){warning=e.message;}
+      } else {
+        clavicle=+((crop.y+crop.size)/rgba.height).toFixed(3);
+        center=+((crop.x+crop.size/2)/rgba.width).toFixed(3);
+      }
+      if(mode==='preview'&&!crop)throw new Error(`${x.image.key} 无法生成预览：${warning??'缺少裁切框'}`);
+      const tileRgba=mode==='preview'?cropPixels(rgba,crop):guidePixels(rgba,crop);
+      const shortKey=standingLabel(x.image.key);
+      entries.push({label:`${i+1} ${shortKey}`,rgba:tileRgba,meta:{n:i+1,key:x.image.key,name:nameOf(x),
+        size:`${bound.width}×${bound.height}`,saved:Boolean(bound.crop),estimated,
+        ...(top!=null?{top}:{}),...(clavicle!=null?{clavicle}:{}),...(center!=null?{center}:{}),
+        ...(crop?{crop}:{}),...(warning?{warning}:{})}});
+    }
+    const tileWidth=mode==='preview'?240:280,tileHeight=mode==='preview'?240:420;
+    const sheets=await writeSheets(entries,`crop-${mode}`,{cols,perPage,tileWidth,tileHeight,outOpt:option('--out')});
+    print({mode,total:entries.length,sheets});
+    return;
+  }
+
+  if(flag('--crop-batch')) {
+    const specFile=option('--crop-batch');
+    if(!specFile)throw new Error('写 --crop-batch <crops.json>。');
+    const rawSpec=JSON.parse(await readFile(specFile,'utf8'));
+    const list=Array.isArray(rawSpec)?rawSpec:rawSpec&&typeof rawSpec==='object'
+      ?Object.entries(rawSpec).map(([key,v])=>({key,...(v&&typeof v==='object'?v:{})})):null;
+    if(!list||!list.length)throw new Error('批量裁切文件须为非空数组或 {key:{clavicle,top?,center?,file?}} 对象。');
+    const cols=gridOption('--cols',4),perPage=gridOption('--per-page',16);
+    const byKey=new Map(images(catalog).filter(x=>x.asset.cat==='character').map(x=>[x.image.key,x]));
+    const updates=[],entries=[],results=[];
+    const atVal=(value,size,name)=>{if(value===undefined||value===null)return undefined;const n=Number(value);if(!Number.isFinite(n))throw new Error(`${name} 无效`);return n<=1?n*size:n;};
+    for(let i=0;i<list.length;i++) {
+      const spec=list[i],key=String(spec?.key??''),found=byKey.get(key);
+      if(!found)throw new Error(`没有这张立绘：${key}`);
+      const bound=found.image.bound;
+      if(!bound)throw new Error(`这张立绘还没有图片：${key}`);
+      const bytes=spec.file?new Uint8Array(await readFile(path.resolve(path.dirname(path.resolve(specFile)),spec.file))):await boundBytesOf(found);
+      const picture=await decodeToRgba(bytes),{width,height}=picture;
+      if(width!==bound.width||height!==bound.height)throw new Error(`${key} 原图 ${width}×${height} 与登记的立绘 ${bound.width}×${bound.height} 尺寸不同。`);
+      const specTop=atVal(spec.top,height,'top'),specClavicle=atVal(spec.clavicle,height,'clavicle'),specCenter=atVal(spec.center,width,'center');
+      let measured={top:NaN,center:width/2,clavicle:null};
+      try{measured=measurePortrait(picture);}catch(error){if(specTop===undefined||specClavicle===undefined)throw new Error(`${key}: ${error.message}`);}
+      const top=specTop??measured.top,clavicle=specClavicle??measured.clavicle,center=specCenter??measured.center;
+      if(clavicle==null)throw new Error(`${key} 估不出锁骨位置，请在批量文件里给出 clavicle。`);
+      const crop=avatarCropFor({width,height},{top,clavicle,center});
+      const warning=top-crop.y<CROP.headroom*crop.size-1?'发顶贴近图顶，框顶留不出空白；头像可用，立绘取景顶部过满':undefined;
+      updates.push({target:found.image.target,crop});
+      const item={n:i+1,key,name:nameOf(found),size:`${width}×${height}`,top:+(top/height).toFixed(3),
+        clavicle:+(clavicle/height).toFixed(3),center:+(center/width).toFixed(3),crop,...(warning?{warning}:{})};
+      results.push(item);
+      entries.push({label:`${i+1} ${standingLabel(key)}`,rgba:cropPixels(picture,crop),meta:item});
+    }
+    if(flag('--save'))await adjustPortraitsBatch(projectPath,updates);
+    const sheets=await writeSheets(entries,'crop-batch-preview',{cols,perPage,tileWidth:240,tileHeight:240,outOpt:option('--out')??option('--sheet-out')});
+    print({saved:flag('--save'),count:results.length,items:results,sheets});
+    return;
+  }
+  throw new Error('写 --presets、--list、--draw／--missing、--prompt、--crop、--sheet、--crop-sheet 或 --crop-batch。');
 }
 
 main().catch(error=>{console.error(error.message);process.exit(1);});

@@ -6,12 +6,16 @@ import { loadDirectorProject } from '../production/director-project.js';
 import { assetCatalog } from '../production/asset-catalog.js';
 import {
   findWorks, bindImage, removeImage, adjustPortrait, editDescription, editStature, editStyles, setPromptOverride, exportWork, setExportImages, setImageRatio,
-  createDirectorProject, importPackage, setBookInfo,
+  createDirectorProject, importPackage, setBookInfo, setVoices, bindAudioFile, removeAudioFile, editSounds, editTrack, setCredits,
 } from '../production/director-edits.js';
 import { readDirectors } from '../core/director.js';
 import { parseScript } from '../core/parser.js';
 import { importStoryPackage } from '../reader/story-package.js';
 import { fixedStylesOf } from '../conversion/director.js';
+import { voiceRoles } from '../production/voices.js';
+import { generateTrack, restoreTrack, musicLog } from '../production/music-generation.js';
+import { workCredits, creditSettings } from '../production/credits.js';
+import { creditSections } from '../reader/credits.js';
 import { fail, readBody, send } from './http.mjs';
 import { readFile, writeFile, rename } from 'node:fs/promises';
 import { createGeneration } from './generation.mjs';
@@ -19,13 +23,18 @@ import { readGenerated, historyOf } from '../production/generation-log.js';
 import { validateImageScheme } from '../production/image-presets.js';
 import { hasBackground } from '../production/image-generation.js';
 import { validateExportImages } from '../production/webp.js';
+import { bindHit } from '../production/image-library.js';
 
-const IMAGE_BODY = 25 * 1024 * 1024, PACKAGE_BODY = 1024 * 1024 * 1024, JSON_BODY = 1024 * 1024;
+const AUDIO_BODY = 41 * 1024 * 1024, IMAGE_BODY = 25 * 1024 * 1024, PACKAGE_BODY = 1024 * 1024 * 1024, JSON_BODY = 1024 * 1024;
 
 /* The asset manager's works: every folder under works/ with a director project, or with a finished text or package
  * that becomes one when opened. A loaded project is kept until its project file changes. */
-/** @param {string} root the production folder @param {() => Promise<any[]>} presets the image service presets */
-export function createWorks(root, presets) {
+/**
+ * @param {string} root the production folder @param {() => Promise<any[]>} presets the image service presets
+ * @param {(from: any, kind?: 'music'|'sounds') => Promise<{bytes: Uint8Array, source: Record<string,string>}>} [soundFrom] a sound from a library
+ * @param {() => Promise<any[]>} [musicPresets] the music generation presets
+ */
+export function createWorks(root, presets, soundFrom = async () => { throw fail(400, '不支持的音频来源。'); }, musicPresets = async () => []) {
   const worksDir = path.join(root, 'works');
   /** @type {Map<string,{stamp:number,loaded:any,catalog:any[]}>} */
   const cache = new Map();
@@ -104,7 +113,31 @@ export function createWorks(root, presets) {
     }));
     return { id, ...summary(loaded, catalog), chapterList: status, styles, fixedStyles: Object.keys(fixed), catalog, scheme,
       exportImages: validateExportImages(loaded.project.exportImages),
+      // Who speaks, with lines to preview voices, and the voices the work gives them.
+      voices: { roles: voiceRoles(loaded.story), record: loaded.job.voices ?? loaded.story.voices ?? null },
+      // Music and sounds with the file each has (its SHA-256, name and source), and the places that can have ambience.
+      audio: { ...audioDetail(loaded), log: await musicLog(projectPath) },
+      credits: await creditsDetail(loaded, projectPath),
       queue: generation.state(projectPath) };
+  }
+  // The credits as an export will write them, and the sources that need an author for attribution but have none.
+  /** @param {any} loaded @param {string} projectPath */
+  async function creditsDetail(loaded, projectPath) {
+    const record = await workCredits(loaded, projectPath);
+    const sections = creditSections(loaded.story, record, loaded.audio, { book: title => `《${title}》` });
+    const unsigned = Object.values(loaded.audio.files).filter((/** @type {any} */ f) => /BY/i.test(f.source?.license ?? '') && !f.source?.author).length;
+    return { settings: creditSettings(loaded.project.credits), sections, unsigned };
+  }
+  /** @param {any} loaded */
+  function audioDetail(loaded) {
+    const files = loaded.audio.files, bound = (/** @type {Record<string,string>} */ slot) => Object.fromEntries(Object.entries(slot ?? {}).map(([id, file]) => [id,
+      { fileId: file, name: files[file]?.name ?? '', type: files[file]?.type ?? '', ...(files[file]?.source ? { source: files[file].source } : {}) }]));
+    const story = loaded.story;
+    return {
+      music: story.music ?? null, sounds: story.sounds ?? null,
+      bound: { tracks: bound(loaded.audio.bindings.tracks), sounds: bound(loaded.audio.bindings.sounds) },
+      locations: [...story.entities.values()].filter((/** @type {any} */ e) => e.kind === 'location').map((/** @type {any} */ e) => ({ id: e.id, label: e.label })),
+    };
   }
   // Whether a bound portrait still has a background, remembered per picture (the check decodes the PNG).
   /** @type {Map<string,boolean|null>} */
@@ -165,8 +198,16 @@ export function createWorks(root, presets) {
       res.writeHead(200, { 'Content-Type': stored.type, 'Content-Length': bytes.length, 'Cache-Control': 'private, max-age=31536000, immutable' }).end(bytes);
       return;
     }
+    const audioFile = /^\/audio\/([a-f0-9]{64})$/.exec(action);
+    if (method === 'GET' && audioFile) {
+      const { loaded } = await load(projectPath), stored = loaded.audio.files[audioFile[1]];
+      if (!stored?.blob) throw fail(404, '没有这个音频。');
+      const bytes = new Uint8Array(await stored.blob.arrayBuffer());
+      res.writeHead(200, { 'Content-Type': stored.type, 'Content-Length': bytes.length, 'Cache-Control': 'private, max-age=31536000, immutable' }).end(bytes);
+      return;
+    }
     if (method !== 'POST') throw fail(404, '不支持的操作。');
-    const payload = action === '/bind' ? await readBody(req, IMAGE_BODY) : await readBody(req, JSON_BODY);
+    const payload = action === '/bind' ? await readBody(req, IMAGE_BODY) : action === '/audio/upload' ? await readBody(req, AUDIO_BODY) : await readBody(req, JSON_BODY);
     await serial(projectPath, () => change(req, res, id, projectPath, action, payload));
   }
   /** @param {IncomingMessage} req @param {ServerResponse} res @param {string} id @param {string} projectPath @param {string} action @param {Buffer|null} payload */
@@ -175,13 +216,36 @@ export function createWorks(root, presets) {
     if (action === '/bind') {
       const target = JSON.parse(decodeURIComponent(String(req.headers['x-target'] ?? '')));
       await bindImage(projectPath, target, new Uint8Array(/** @type {Buffer} */ (payload)));
-    } else if (action === '/remove') await removeImage(projectPath, json().target);
+    } else if (action === '/image/fetch') { const b = json(); await bindHit(projectPath, b.target, b.hit); }
+    else if (action === '/remove') await removeImage(projectPath, json().target);
     else if (action === '/adjust') { const b = json(); await adjustPortrait(projectPath, b.target, b); }
     else if (action === '/description') { const b = json(); await editDescription(projectPath, b.edit, b.value); }
     else if (action === '/stature') { const b = json(); await editStature(projectPath, b.edit, b.value); }
     else if (action === '/prompt') { const b = json(); await setPromptOverride(projectPath, b.key, b.text ?? null); }
     else if (action === '/styles') await editStyles(projectPath, json());
     else if (action === '/book') await setBookInfo(projectPath, json());
+    else if (action === '/voices') await setVoices(projectPath, json());
+    else if (action === '/audio/upload') {
+      const kind = String(req.headers['x-kind']), id = decodeURIComponent(String(req.headers['x-id'] ?? ''));
+      if (!['music', 'sounds'].includes(kind)) throw fail(400, '音频种类无效。');
+      const source = JSON.parse(decodeURIComponent(String(req.headers['x-source'] ?? '%7B%7D')));
+      await bindAudioFile(projectPath, /** @type {'music'|'sounds'} */ (kind), id, new Uint8Array(/** @type {Buffer} */ (payload)), { source });
+    } else if (action === '/audio/fetch') {
+      // A sound from a library (Freesound or the local folder), taken with its source.
+      const b = json();
+      if (!['music', 'sounds'].includes(b.kind)) throw fail(400, '音频种类无效。');
+      const { bytes, source } = await soundFrom(b.from, b.kind);
+      await bindAudioFile(projectPath, b.kind, b.id, bytes, { source });
+    } else if (action === '/audio/remove') { const b = json(); await removeAudioFile(projectPath, b.kind, b.id); }
+    else if (action === '/sounds') await editSounds(projectPath, json());
+    else if (action === '/credits') await setCredits(projectPath, json());
+    else if (action === '/music/edit') { const b = json(); await editTrack(projectPath, b.id, { name: b.name, prompt: b.prompt }); }
+    else if (action === '/music/generate') {
+      // A track from a music preset, bound at once; the earlier ones stay in the log.
+      const b = json(), preset = (await musicPresets()).find(p => p.id === b.preset);
+      if (!preset) throw fail(400, '没有这个音乐预设。');
+      await generateTrack(projectPath, b.track, preset, typeof b.prompt === 'string' ? { prompt: b.prompt } : {});
+    } else if (action === '/music/restore') { const b = json(); await restoreTrack(projectPath, b.id, b.file); }
     else if (action === '/scheme') await saveScheme(projectPath, json());
     else if (action === '/ratio') {
       // The queue draws at the size it was started with; the canvas changes only between runs.

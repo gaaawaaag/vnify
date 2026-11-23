@@ -15,6 +15,7 @@ vnify. 的图像资产与绑定关系独立于 `.vn.txt` 正文脚本维护，�
   "bindings": {
     "book": null,
     "titleCard": "a1b2c3...",
+    "endCard": null,
     "ambients": {"ch1.ambient01": "d4e5f6..."},
     "locations": {"old_station": "789abc..."},
     "cgs": {"ch1.cg01": "def012..."},
@@ -48,6 +49,7 @@ vnify. 的图像资产与绑定关系独立于 `.vn.txt` 正文脚本维护，�
 - **`@document`**：沿用脚本顺序中前一个正文单元实际显示的背景；若位于章节开头无前文，则从章节氛围图／作品背景回退。
 - **无 `loc` 的回忆／梦境场景与 `@narration`**：直接从氛围图层级（第 4 步）开始回退，不沿用前一个现实场景的地点背景。
 - **作品封面（`titleCard`）**：专用于进入作品时的标题画面与书架封面展示，不参与正文背景回退。详见 [导演与配图规范](director.md)。
+- **结尾图（`endCard`，可选）**：读完全书时结尾卡片的背景，清晰显示并略微压暗，不参与正文背景回退；省略或为 `null` 时用模糊压暗的作品封面。制作时在预设中打开“结尾图”，由全书设计写描述。
 
 ---
 
@@ -114,9 +116,10 @@ vnify. 的图像资产与绑定关系独立于 `.vn.txt` 正文脚本维护，�
   assets/backgrounds/<SHA-256>.png|jpg|webp   （背景、封面、CG、特写与地点差分图片）
   assets/characters/<SHA-256>.png|jpg|webp    （人物默认立绘与差分立绘）
   assets/extra/<SHA-256>.png|jpg|webp         （可选，EPUB 原书插图与封面）
+  assets/audio/<SHA-256>.mp3|m4a|ogg          （可选，音乐）
 ```
 
-包内所有图片均以其字节内容的 `SHA-256` 十六进制摘要命名，相同图片在同类资产中自动去重。作品包仅包含成品剧本、人物资料、导演记录与图像资产，不包含原书文件、制作过程草稿、API 密钥或个人阅读进度。
+包内所有图片与音频均以其字节内容的 `SHA-256` 十六进制摘要命名，相同文件在同类资产中自动去重。作品包仅包含成品剧本、人物资料、导演记录与图像资产，不包含原书文件、制作过程草稿、API 密钥或个人阅读进度。
 
 ### `manifest.json` 结构
 
@@ -135,9 +138,71 @@ vnify. 的图像资产与绑定关系独立于 `.vn.txt` 正文脚本维护，�
 
 - `complete`：标识作品正文是否已包含至原书结尾（连载或分批试读稿可设为 `false`）。
 - `extra`：存在原书附录或原书图片时为 `"extra.json"`，否则为 `null`。
+- `audio`：有曲目绑定了音频文件时存在，见下文[音乐](#音乐)；没有时省略。
+- `credits`（可选）：致谢记录 `{"version":1,"images":["生成所用的服务与模型"],"notice":"说明","signature":true}`。`images` 只列模型名、不计张数，来源不明的图片记为“用户提供”；`notice` 为作者写的说明（如“仅供学习用途”）；`signature` 为是否在致谢里写上 vnify.，缺省时写上。阅读器的“致谢”把它与正文和音频清单里已有的来源（原作、曲目与音效的作者和许可证、音色）合在一起显示。
 - 体积限制：`story.vn.txt` 上限 `10 MiB`，`manifest.json` 上限 `16 MiB`，`extra.json` 上限 `8 MiB`。
 
 ---
+
+## 音乐
+
+### 音乐记录（`// @vn-music`）
+
+正文中至多有一行音乐记录，与导演记录并列，解析器视为注释：
+
+```text
+// @vn-music {"tracks":[{"id":"rain","name":"雨夜","prompt":"Slow solo piano, rain on the window."}],"cues":[{"from":"s01:1","track":"rain"},{"from":"s04:2","track":null}]}
+```
+
+- `tracks`：曲目 `{id, name, prompt}`。`id` 全书唯一（字母、数字与 `_.-`，最多 64 字符），`name` 为显示名，`prompt` 为可选的生成描述。
+- `cues`：切换点 `{from, track}`，按正文顺序排列。从 `from` 单元起播放 `track`（`null` 为静音），持续到下一个切换点，可以跨章；第一个切换点之前静音。
+- 某一位置播放什么只由位置决定：跳读、回退或从中途打开都与顺读到该处相同。换曲时交叉淡入淡出，曲目循环播放。
+- 曲目没有绑定音频文件时按静音处理，阅读不受影响。
+
+### 音频清单（manifest `audio`）
+
+```json
+{
+  "version": 1,
+  "bindings": {"tracks": {"rain": "<SHA-256>"}},
+  "files": {
+    "<SHA-256>": {"path": "assets/audio/<SHA-256>.mp3", "name": "rain.mp3", "type": "audio/mpeg",
+      "source": {"title": "Rain", "author": "…", "url": "https://…", "license": "CC0"}}
+  }
+}
+```
+
+- `bindings.tracks`：音乐记录中的曲目 ID 到音频文件；`bindings.sounds`（可选）：环境音与音效记录中的声音 ID 到音频文件。每个文件都须被某首曲目或某个声音使用。
+- `type` 为 `audio/mpeg`（MP3）、`audio/mp4`（M4A／AAC）或 `audio/ogg`；文件头须与之一致，单个文件最大 `40 MiB`，全书最多 256 个。
+- `source`（可选）：出处、作者、链接与许可证，随作品包分发；使用 CC-BY 等需要署名的素材时填写。
+
+## 环境音与音效（`// @vn-sounds`）
+
+正文中至多有一行环境音与音效记录，与导演记录并列，解析器视为注释：
+
+```text
+// @vn-sounds {"sounds":[{"id":"rain","name":"雨声","kind":"ambience","query":"rain on window loop"},{"id":"door","name":"开门","kind":"effect","query":"old wooden door creak"}],"places":{"inn":"rain"},"blocks":{"s05":null},"effects":[{"at":"s01:2","sound":"door","phase":"enter"}]}
+```
+
+- `sounds`：声音 `{id, name, kind, query, prompt}`。`kind` 为 `ambience`（环境音，循环）或 `effect`（音效，一次性）；`query` 是搜索音效库用的英文词，`prompt` 是生成用的描述，都可省略。
+- `places`：地点 ID 到环境音，为该地点所有场景的默认环境音。
+- `blocks`：内容块 ID 到环境音，个别块另指定；`null` 为这一块静音。
+- 环境音的查找顺序：块的指定 → 地点的默认 → 静音；document 沿用前一个场景的地点。换环境音时淡入淡出。
+- `effects`：音效点 `{at, sound, phase, volume}`，按正文顺序排列。`phase` 为 `enter`（进入这一句时）或 `shown`（这一句文字显示完后），默认 `enter`；`volume` 为 0–1，默认 1。音效只在顺着往前读到这一句时播放，回退与跳转不补播。
+- 声音的文件在 manifest `audio.bindings.sounds` 中按声音 ID 绑定，与曲目共用文件清单与来源字段；没有文件的声音按无声处理。
+
+## 音色（`// @vn-voices`）
+
+正文中至多有一行音色记录，与导演记录并列，解析器视为注释：
+
+```text
+// @vn-voices {"labels":{"fish:54a5…":"沉稳旁白","fish:8e2f…":"温和青年男声"},"cast":{"narrator":"fish:54a5…","characters":{"lin":"fish:8e2f…"}},"portraits":{"lin":"二十多岁的男性，声音温和偏低"}}
+```
+
+- 音色写作 `<服务>:<音色 ID>`，支持 Fish Audio（`fish:`）、ElevenLabs（`elevenlabs:`）与 Gemini TTS（`gemini:`）；`labels` 给出显示名，只保留分派用到的音色。
+- `cast`：`narrator` 为旁白，`other` 为没有名字的说话人和没有单独分派的人物，`characters` 按人物 ID 分派。没有分派的角色依次沿用 `other`、`narrator`，最后用阅读器的默认语音。
+- `portraits`（可选）：角色（`narrator`、`other` 或人物 ID）的声音画像，供设计或挑选音色。
+- 阅读器按这份分派朗读；用到某个服务的音色时，读者需要在阅读器设置里填入该服务的 key；没有 key 时改用浏览器语音。
 
 ## 原书附录与插图（`extra.json` v2）
 

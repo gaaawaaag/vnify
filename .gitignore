@@ -7,13 +7,13 @@
 # Theme screenshots (scripts/theme-shots.mjs).
 /theme-shots/
 
-# Dependencies (Electron is a dev-only experiment).
+# Dependencies.
 /node_modules/
 
 # Local bookshelf of `npm start` (books, progress, covers).
 /data/
 
-# Desktop builds.
+# Release builds.
 /dist/
 
 # Cloud deployment settings (passphrase).
@@ -22,6 +22,9 @@
 # Personal production presets, edited in the manager and read by the agent (see skills/vn-convert).
 /presets.json
 /image-presets.json
+/voices.json
+/sound-services.json
+/music-presets.json
 /preferences.md
 # The asset manager's built page (npm run manager:build).
 /dist-manager/

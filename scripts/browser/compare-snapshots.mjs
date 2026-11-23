@@ -1,4 +1,4 @@
-// Compares two style-snapshot results written by electron-run.mjs.
+// Compares two style-snapshot results written by browser-run.mjs.
 // Usage: node scripts/browser/compare-snapshots.mjs before.json after.json [limit]
 import {readFile} from 'node:fs/promises';
 const [beforeFile, afterFile, limit = '60'] = process.argv.slice(2);

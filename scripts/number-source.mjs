@@ -66,7 +66,7 @@ async function writeEpubData(book,map,dir) {
     }
     ids.set(file,id);
   }
-  const data={schema:'vn-epub-1',title:book.title,author:book.author,
+  const data={schema:'vn-epub-1',title:book.title,author:book.author,description:book.description,
     chapters:book.chapters.map(c => ({start:map.paragraphs[c.line].id,title:c.title})),
     images,cover:ids.get(book.cover)??null,
     placements:book.images.filter(i => ids.has(i.path)).map(i => ({imageId:ids.get(i.path),after:i.after<0?null:map.paragraphs[i.after].id})),

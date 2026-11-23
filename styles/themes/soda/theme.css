@@ -177,9 +177,13 @@
 
   --title-screen-text: #22305a;
   --title-screen-hint: #22305a;
-  --title-screen-scrim: rgb(253 246 232 / 88%);
   --title-screen-shadow: 0 1px 0 #ffffffcc;
   --title-screen-backdrop-filter: blur(36px) brightness(1.08) saturate(1.15);
+  --title-screen-accent: #b5702a;
+  --title-screen-button: rgb(253 246 232 / 45%);
+  --title-screen-button-line: #22305a33;
+  --title-screen-primary: #22305a;
+  --title-screen-primary-text: #fdf6e8;
   --picture-backdrop-filter: blur(36px) brightness(1.08) saturate(1.15);
 }
 

@@ -19,13 +19,15 @@ export function createBackgroundPanel({getContext,onSceneChange=()=>{},getIllust
     collapse:$('cut-in-collapse'),expand:$('cut-in-expand'),viewer:$('cut-in-viewer'),viewerImage:$('cut-in-viewer-image')},
     onChange:()=>onSceneChange()});
   const view=createBackgroundView({root:$('reader-background'),reader:$('reader'),onCgChange:value=>{cgVisible=value;onSceneChange();}});
-  async function render({scope,chapterId,animate=false} = {}) {
-    if(scope){stageScope=scope;stageChapter=chapterId??null;}
+  async function render({scope,chapterId:scopeChapter,animate=false} = {}) {
+    if(scope){stageScope=scope;stageChapter=scopeChapter??null;}
     const revision=++renderVersion;await ready;
     if(revision!==renderVersion)return;
     const {story,index,intro}=getContext();
     const unit=story?.units[index];
     const target=stageScope==='chapter'&&unit?{chapter:{id:stageChapter??unit.chapter.id},block:{loc:null}}:unit;
+    // The chapter each frame belongs to picks the change between chapters (src/reader/transitions.js).
+    const chapterId=target?.chapter.id??null;
     const loc=stageScope==='scene'&&unit?unitLocation(unit):null;
     const variant=loc&&document.documentElement.dataset.variants!=='off'?variantAt(story,loc,index):null;
     const candidates=story?.book.id===bookId?backgroundCandidates(data,target,story,variant):[];
@@ -37,15 +39,15 @@ export function createBackgroundPanel({getContext,onSceneChange=()=>{},getIllust
     const cg=stageScope==='scene'&&!intro?activeCg(story,index):null;
     const cgImage=cg&&data?.bindings.cgs?.[cg.id];
     if(cgImage&&data.images[cgImage]){
-      const shown=await view.show({id:cgImage,src:data.images[cgImage].src,kind:'cg',animate});
+      const shown=await view.show({id:cgImage,src:data.images[cgImage].src,kind:'cg',chapterId,animate});
       if(shown!==false||revision!==renderVersion)return;
     }
     for(const candidate of candidates){
       if(revision!==renderVersion)return;
-      const shown=await view.show({...candidate,src:data.images[candidate.id].src,animate});
+      const shown=await view.show({...candidate,src:data.images[candidate.id].src,place:loc,chapterId,animate});
       if(shown!==false||revision!==renderVersion)return;
     }
-    if(revision===renderVersion)await view.show({id:null,src:null,kind:'fallback',animate});
+    if(revision===renderVersion)await view.show({id:null,src:null,kind:'fallback',place:loc,chapterId,animate});
   }
   // The images of the next few lines: their background, CG and Cut-in.
   function preloadAhead() {
@@ -78,5 +80,14 @@ export function createBackgroundPanel({getContext,onSceneChange=()=>{},getIllust
     const key=bookId===id?data?.bindings.titleCard:null;
     return key?data.images[key]?.src??null:null;
   }
-  return {get cgVisible(){return cgVisible;},get cutInVisible(){return cutInView.visible;},setStory,render,preloadAhead,titleCard,pictures};
+  // The end card's own picture ({src,own:true}), else the title card's; null without either.
+  async function endCard(id){
+    await ready;
+    if(bookId!==id||!data)return null;
+    const own=data.bindings.endCard?data.images[data.bindings.endCard]?.src:null;
+    if(own)return {src:own,own:true};
+    const cover=data.bindings.titleCard?data.images[data.bindings.titleCard]?.src:null;
+    return cover?{src:cover,own:false}:null;
+  }
+  return {get cgVisible(){return cgVisible;},get cutInVisible(){return cutInView.visible;},setStory,render,preloadAhead,titleCard,endCard,pictures};
 }

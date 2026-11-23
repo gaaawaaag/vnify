@@ -1,0 +1,20 @@
+{
+  "open": {"gain": 0.73, "layers": [
+    {"type": "tone", "wave": "triangle", "f": 200, "f2": 170, "dur": 0.07, "g": 0.25},
+    {"type": "noise", "f": 1100, "q": 3, "dur": 0.03, "g": 0.08},
+    {"type": "tone", "wave": "triangle", "f": 240, "f2": 210, "dur": 0.06, "g": 0.12, "at": 0.07}
+  ]},
+  "close": {"gain": 0.68, "layers": [
+    {"type": "tone", "wave": "triangle", "f": 170, "f2": 150, "dur": 0.07, "g": 0.2},
+    {"type": "noise", "f": 900, "q": 3, "dur": 0.025, "g": 0.06}
+  ]},
+  "select": {"gain": 1.17, "layers": [
+    {"type": "tone", "wave": "triangle", "f": 340, "dur": 0.035, "g": 0.12},
+    {"type": "noise", "f": 1800, "q": 3, "dur": 0.012, "g": 0.05}
+  ]},
+  "chapter": {"gain": 0.5, "layers": [
+    {"type": "noise", "f": 900, "f2": 2800, "q": 1.1, "dur": 0.28, "a": 0.1, "g": 0.12},
+    {"type": "tone", "wave": "triangle", "f": 130, "f2": 115, "dur": 0.14, "g": 0.28, "at": 0.3, "wet": 0.3},
+    {"type": "tone", "f": 65, "dur": 0.5, "g": 0.12, "at": 0.3, "wet": 0.3}
+  ]}
+}

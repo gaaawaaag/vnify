@@ -3,6 +3,10 @@ import {parseScript} from '../core/parser.js';
 import {scriptLines} from '../core/script-text.js';
 import {extractDossiers,validateDossiers,applyDossierEvent} from '../core/dossier.js';
 import {readDirectors,embedDirectors} from '../core/director.js';
+import {readBlurb,withBlurb} from '../core/blurb.js';
+import {withMusic} from '../core/music.js';
+import {withVoices} from '../core/voices.js';
+import {withSounds} from '../core/sounds.js';
 import {directorOptions,directorActive,directorPacket,validateDirector,validateDirectorSelection,directorTaskRules,directorContext} from './director.js';
 import {bookImageCount} from '../core/director.js';
 import {dossierStatePacket} from './conversion-project.js';
@@ -17,10 +21,10 @@ export class ScriptDirector {
     this.director=directorOptions({enabled:true,...director});
     this.plan=story.chapters.map(chapter=>({chapter}));
     const lines=scriptLines(raw),originalLines=raw.match(/[^\r\n]*(?:\r\n|\r|\n|$)/g);
-    this.baseRaw=originalLines.filter((_,i)=>lines[i]?.literal||!/^\/\/ @vn-(director|title-card) /.test(lines[i]?.text.trim()??'')).join('');
+    this.baseRaw=originalLines.filter((_,i)=>lines[i]?.literal||!/^\/\/ @vn-(director|title-card|end-card) /.test(lines[i]?.text.trim()??'')).join('');
     // Reading the directors also fills story.titleCard.
     const existing=readDirectors(raw,story);
-    this.importedTitleCard=story.titleCard;
+    this.importedTitleCard=story.titleCard;this.importedEndCard=story.endCard;
     this.imported=new Map(existing.map(d=>[d.chapterId,JSON.stringify(d)]));
     this.selectedArtStyle=existing[0]?.artStyles??null;
     this.designDoc=null;this.visualProfiles=[];
@@ -56,7 +60,15 @@ export class ScriptDirector {
       if(r.directorSaved||!directorActive(this.director))this.readyChapters++;
     }
     this.complete=this.readyChapters===this.plan.length;
-    this.readableOutput=embedDirectors(this.baseRaw,docs,this.designDoc?.titleCard??this.importedTitleCard);
+    const embedded=embedDirectors(this.baseRaw,docs,this.designDoc?.titleCard??this.importedTitleCard,this.designDoc?.endCard??this.importedEndCard);
+    // The original book's blurb, already in the text, comes first; the design's fills in only when there is none.
+    const blurbed=this.designDoc?.blurb&&!readBlurb(this.baseRaw)?withBlurb(embedded,this.designDoc.blurb):embedded;
+    // Music set by the project (undefined: keep the input's record) replaces the input's record.
+    const scored=this.music!==undefined?withMusic(blurbed,this.music):blurbed;
+    // Voices set by the project (undefined: keep the input's record) replace the input's record.
+    const voiced=this.voices!==undefined?withVoices(scored,this.voices):scored;
+    // Ambience and effects set by the project (undefined: keep the input's record) replace the input's record.
+    this.readableOutput=this.sounds!==undefined?withSounds(voiced,this.sounds):voiced;
     readDirectors(this.readableOutput,this.story);
     this.output=this.complete?this.readableOutput:'';
   }
@@ -66,7 +78,9 @@ export class ScriptDirector {
       designIds:new Set((this.designDoc?.variants??[]).map(v=>v.id))};
   }
   // The cover is drawn outside the chapter records but counts against the book's image limit.
-  get reservedImages() {return this.designDoc?.titleCard??this.importedTitleCard?1:0;}
+  get reservedImages() {
+    return (this.designDoc?.titleCard??this.importedTitleCard?1:0)+(this.designDoc?.endCard??this.importedEndCard?1:0);
+  }
   packet(i) {
     const chapterId=this.plan[i].chapter.id;
     const end=this.story.units.findLastIndex(u=>u.chapter.id===chapterId);

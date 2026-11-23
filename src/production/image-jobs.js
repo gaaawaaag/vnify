@@ -13,7 +13,7 @@ import {defaultColor} from '../core/colors.js';
 import {pruneBackgrounds,validateBackgrounds} from '../reader/backgrounds.js';
 import {bindCharacterPortrait} from '../reader/character-images.js';
 import {directorImagePrompt} from '../core/director.js';
-import {directorGeneration,titleCardEnabled} from '../core/director-generation.js';
+import {directorGeneration,titleCardEnabled,endCardEnabled} from '../core/director-generation.js';
 import {coverRatio} from './presets.js';
 
 // A shared master design can bind an already made image to another compatible
@@ -148,6 +148,9 @@ export function planImageJobs(story,directors,assets,scope='all',generation={}) 
     if(chapter===story.chapters[0]&&titleCardEnabled(generation)&&story.titleCard&&docs[0]&&!assets.backgrounds.bindings.titleCard)
       chapterTasks.push({purpose:'title-card',chapterId:chapter.id,chapterTitle:chapter.title,
         prompt:directorImagePrompt(docs[0],story.titleCard.prompt,'title-card')});
+    if(chapter===story.chapters[0]&&endCardEnabled(generation)&&story.endCard&&docs[0]&&!assets.backgrounds.bindings.endCard)
+      chapterTasks.push({purpose:'end-card',chapterId:chapter.id,chapterTitle:chapter.title,
+        prompt:directorImagePrompt(docs[0],story.endCard.prompt,'end-card')});
     if(selected.backgrounds)chapterTasks.push(...backgroundTasks(chapter,chapterDocs,selected,assets,claimed));
     if(selected.cgs)for(const doc of chapterDocs)for(const cg of doc.cgs){
       if(assets.backgrounds.bindings.cgs?.[cg.id])continue;
@@ -181,7 +184,7 @@ export function planImageJobs(story,directors,assets,scope='all',generation={}) 
   // Backgrounds, ambients and CG take the project's ratio; the cover follows its orientation (16:9 or 2:3), a Cut-in is
   // square, a portrait 2:3.
   for(const task of tasks)if(task.purpose!=='standing')
-    task.aspectRatio=task.purpose==='title-card'?coverRatio(generation.ratio):task.purpose==='cut-in'?'1:1':generation.ratio??'16:9';
+    task.aspectRatio=['title-card','end-card'].includes(task.purpose)?coverRatio(generation.ratio):task.purpose==='cut-in'?'1:1':generation.ratio??'16:9';
   const backgroundsByPrompt=new Map();
   return tasks.filter(task=>{
     if(task.purpose!=='background')return true;
@@ -278,11 +281,12 @@ export function bindGeneratedImage(data,story,task,image,id,{replace=false,crop=
     return bindCharacterPortrait({...data,images:{...data.images,[id]:image}},story,task.characterId,id,variant,{flip,crop});
   }
   const next=structuredClone(data);next.images[id]=image;
-  if(task.purpose==='title-card'){
-    if(replace||!next.bindings.titleCard)next.bindings.titleCard=id;
+  if(task.purpose==='title-card'||task.purpose==='end-card'){
+    const slot=task.purpose==='title-card'?'titleCard':'endCard';
+    if(replace||!next.bindings[slot])next.bindings[slot]=id;
     return validateBackgrounds(pruneBackgrounds(next),story);
   }
-  for(const ref of task.refs)if(replace||!next.bindings[ref.scope][ref.id])
+  for(const ref of task.refs??[])if(replace||!next.bindings[ref.scope][ref.id])
     Object.defineProperty(next.bindings[ref.scope],ref.id,{value:id,enumerable:true,writable:true,configurable:true});
   return validateBackgrounds(pruneBackgrounds(next),story);
 }

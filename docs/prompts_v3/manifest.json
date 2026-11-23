@@ -495,6 +495,10 @@
           "slots": {}
         },
         {
+          "id": "director11.density",
+          "slots": {}
+        },
+        {
           "id": "director11.image-limit",
           "slots": {
             "limit": "全书图片总数上限",
@@ -583,6 +587,38 @@
           "slots": {}
         },
         {
+          "id": "design.end-card",
+          "slots": {}
+        },
+        {
+          "id": "design.output-end-card",
+          "slots": {}
+        },
+        {
+          "id": "design.blurb",
+          "slots": {}
+        },
+        {
+          "id": "design.output-blurb",
+          "slots": {}
+        },
+        {
+          "id": "design.voices",
+          "slots": {}
+        },
+        {
+          "id": "design.output-voices",
+          "slots": {}
+        },
+        {
+          "id": "design.music",
+          "slots": {}
+        },
+        {
+          "id": "design.output-music",
+          "slots": {}
+        },
+        {
           "id": "design.variants",
           "slots": {}
         },
@@ -649,6 +685,13 @@
           }
         },
         {
+          "id": "image11.end-card",
+          "slots": {
+            "object": "Program supplied object",
+            "style": "Character style"
+          }
+        },
+        {
           "id": "image11.cut-in",
           "slots": {
             "object": "Object description",
@@ -695,6 +738,44 @@
         {
           "id": "image11.ref-object",
           "slots": {}
+        }
+      ]
+    },
+    {
+      "id": "V13",
+      "path": "director/sound.md",
+      "fragments": [
+        {
+          "id": "sound.task",
+          "slots": {}
+        },
+        {
+          "id": "sound.effects",
+          "slots": {}
+        },
+        {
+          "id": "sound.music",
+          "slots": {}
+        },
+        {
+          "id": "sound.request",
+          "slots": {
+            "bookTitle": "Program supplied bookTitle",
+            "chapterId": "Program supplied chapterId",
+            "needs": "Program supplied density and notes",
+            "blocks": "Program supplied blocks",
+            "locations": "Program supplied chapter locations",
+            "sounds": "Program supplied defined sounds",
+            "places": "Program supplied place ambience",
+            "tracks": "Program supplied track list",
+            "current": "Program supplied track playing at the chapter start"
+          }
+        },
+        {
+          "id": "sound.output",
+          "slots": {
+            "schema": "Program supplied schema"
+          }
         }
       ]
     }

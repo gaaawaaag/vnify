@@ -33,6 +33,6 @@ export function castPrompt(prompt,cast) {
 }
 // mode: how a standing portrait's transparency is made (see characterBackgroundPrompt).
 export function composeImagePrompt(doc,content,purpose='background',color,mode='transparent') {
-  const style=doc.artStyles[['standing','cg','title-card'].includes(purpose)?'character':'background'];
+  const style=doc.artStyles[['standing','cg','title-card','end-card'].includes(purpose)?'character':'background'];
   return renderPrompt(`image11.${purpose}`,{object:content,style,background:characterBackgroundPrompt(mode,color)});
 }

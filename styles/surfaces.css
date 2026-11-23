@@ -179,6 +179,14 @@ dialog::backdrop {
   background: var(--gold);
 }
 
+.credits-list h3, .credits-meta, .credits-link, .credits-notice .credits-name {
+  color: var(--muted);
+}
+
+.credits-list h3::after {
+  border-top-color: var(--gold);
+}
+
 .reference-filter {
   border: 1px solid var(--line);
   background: var(--field);
@@ -197,6 +205,10 @@ dialog::backdrop {
 }
 
 .setting-row output, .setting-row.is-fixed > span:first-child {
+  color: var(--muted);
+}
+
+.setting-note {
   color: var(--muted);
 }
 
@@ -284,9 +296,11 @@ dialog::backdrop {
   }
 }
 
-#reader-quick button:hover {
+/* Hover tints the button over its own background (a theme's solid button stays solid) and keeps its texture. */
+#reader #reader-quick button:hover {
   color: var(--text);
-  background: var(--hover);
+  background-color: var(--quick-button-background);
+  background-image: linear-gradient(var(--hover), var(--hover)), var(--toolbar-button-texture);
 }
 
 #reader-quick button[aria-pressed="true"] {
@@ -306,16 +320,53 @@ dialog::backdrop {
   --scrim-rgb: var(--dream-scrim-rgb);
 }
 
+/* The picture takes on and loses the tint slowly, in step with the background change (src/reader/transitions.js);
+ * a dream comes on more slowly still, and a document's blur quickly. */
 #reader-background {
-  transition: filter .4s ease;
+  transition: filter .9s ease;
+}
+
+/* Darkened corners: one layer for memories, one for dreams, each fading in and out on its own. */
+#reader-background::before, #reader-background::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity .9s ease;
+  pointer-events: none;
+}
+
+#reader-background::before {
+  background-image: var(--memory-vignette);
+}
+
+#reader-background::after {
+  background-image: var(--dream-vignette);
 }
 
 #reader.memory-mode:not(.document-mode) #reader-background {
-  filter: var(--memory-image-filter);
+  filter: var(--memory-image-filter) blur(var(--memory-image-blur));
 }
 
 #reader.dream-mode:not(.document-mode) #reader-background {
   filter: var(--dream-image-filter);
+  transition: filter 1.1s ease-out;
+}
+
+#reader.memory-mode:not(.document-mode) #reader-background::before {
+  opacity: 1;
+}
+
+#reader.dream-mode:not(.document-mode) #reader-background::after {
+  opacity: 1;
+  transition: opacity 1.1s ease-out;
+}
+
+@media(prefers-reduced-motion:reduce) {
+  #reader-background, #reader-background::before, #reader-background::after {
+    transition: none!important;
+  }
 }
 
 #reader .reading-card #text {
@@ -369,6 +420,7 @@ dialog::backdrop {
 
 #reader.document-mode #reader-background {
   filter: blur(3px);
+  transition-duration: .4s;
 }
 
 #reader.document-mode #stage {
@@ -667,7 +719,7 @@ button:is(:hover, :focus-visible):has(> .ui-icon) {
 }
 
 .cast-person-copy > span, .character-summary, .character-full-name,
-.character-appearance, .cast-empty, .term-list dd {
+.character-appearance, .cast-empty, .term-list dd, .character-voice > span {
   color: var(--muted);
 }
 

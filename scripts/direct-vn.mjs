@@ -8,8 +8,9 @@ import {planImageJobs,attachReferences,sortReferences} from '../src/production/i
 import {readHolds,imageQueue,applyPromptOverrides} from '../src/production/image-tasks.js';
 import {loadDirectorProject} from '../src/production/director-project.js';
 import {packWork} from '../src/production/director-edits.js';
-const modes=['--design-packet','--packet','--jobs'];
-const usage='node scripts/direct-vn.mjs <project.json> [--design-packet | --packet <chapterId> | --jobs] --out <file>';
+import {soundPacket} from '../src/conversion/sound-director.js';
+const modes=['--design-packet','--packet','--sound-packet','--jobs'];
+const usage='node scripts/direct-vn.mjs <project.json> [--design-packet | --packet <chapterId> | --sound-packet <chapterId> | --jobs] --out <file>';
 try {
   const args=process.argv.slice(2);
   if(args.length===1&&args[0]==='--help'){console.log(usage);process.exit(0);}
@@ -33,7 +34,11 @@ try {
   if(needProfiles)throw new Error('清单缺少 visualProfiles：引用转换阶段的 visual-profiles.json（原文对人物与地点外观的描写摘录）；原文没有任何外观描写时写 []。');
   if(flags['--design-packet']){
     if(project.design!==undefined)throw new Error('清单已登记全书设计；修改时直接编辑该文件，或移除 design 后重新生成 packet。');
-    content=designPacket({book:job.story.book,...storyDesignEntities(job.story,job.visualProfiles??[]),settings:job.director,fixedStyles:job.artStyle});
+    content=designPacket({book:job.story.book,...storyDesignEntities(job.story,job.visualProfiles??[]),settings:job.director,fixedStyles:job.artStyle,
+      blurb:!job.story.blurb});
+  }else if(flags['--sound-packet']){
+    // The sound director's packet for one chapter, with the sounds the book has so far.
+    content=soundPacket(job.story,flags['--sound-packet'],job.story.sounds??null,project.soundOptions);
   }else if(flags['--packet']){
     if(!chapters.includes(flags['--packet']))throw new Error('packet 章节须属于 chapters。');
     content=job.packet(job.plan.findIndex(p=>p.chapter.id===flags['--packet']));
@@ -41,7 +46,7 @@ try {
     if(project.imageTasks!==undefined)throw new Error('imageTasks 已停用：暂缓的图片改写到 holds（任务 ID → 原因），其余状态由绑定推出。');
     const holds=readHolds(project.holds);
     // Use the package validator for all asset bindings, even when only listing jobs.
-    await exportStoryPackage(job.readableOutput,backgrounds,{characterImages,extra:packed?.extra??null});
+    await exportStoryPackage(job.readableOutput,backgrounds,{characterImages,extra:packed?.extra??null,audio:loaded.audio});
     const docs=readDirectors(job.readableOutput,job.story),assets={backgrounds,characterImages};
     const scope=chapters.length===job.plan.length?'all':{chapterIds:chapters};
     const relative=filename=>path.relative(path.dirname(output),filename).split(path.sep).join('/');

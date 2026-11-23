@@ -37,6 +37,7 @@ export async function inspectFiles(files,{strictSources=false}={}) {
   const book=await readPackage({
     text:async(name,limit)=>{const file=files.get(name);return file&&file.size<=limit?file.text():null;},
     image:async path=>{if(!files.has(path))throw new Error('作品包缺少图片。');return {};},
+    audio:async path=>{if(!files.has(path))throw new Error('作品包缺少音频。');return {};},
   },{strictSources});
   if([...files.keys()].some(name=>!book.files.has(name)))throw new Error('作品包包含未声明的文件。');
   return book;

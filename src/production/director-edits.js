@@ -13,6 +13,8 @@ import {checkStature} from '../core/variants.js';
 import {fixedStylesOf} from '../conversion/director.js';
 import {RATIOS} from './presets.js';
 import {packageImages,validateExportImages} from './webp.js';
+import {audioType,AUDIO_TYPES,validateAudioSource} from '../reader/audio-assets.js';
+import {workCredits,creditSettings} from './credits.js';
 
 /* Changes the asset manager makes to a director project. Each one is checked by loading the changed project in memory
  * first, so a rejected change writes nothing. Director drafts and the design are never overwritten: an edited one is
@@ -27,18 +29,18 @@ async function writeAtomic(file,data) {
 }
 const json=(/** @type {any} */ value)=>JSON.stringify(value,null,2)+'\n';
 
-// A binding target as image task IDs: title-card, standing:<character>[:<variant>], or <purpose>:<scope>:<id> per ref.
+// A binding target as image task IDs: title-card, end-card, standing:<character>[:<variant>], or <purpose>:<scope>:<id> per ref.
 /** @param {any} t @returns {string[]} */
-export const targetKeys=t=>t.purpose==='title-card'?['title-card']
+export const targetKeys=t=>t.purpose==='title-card'||t.purpose==='end-card'?[t.purpose]
   :t.purpose==='standing'?[`standing:${t.characterId}${t.variantId?`:${t.variantId}`:''}`]
   :(t.refs??[]).map((/** @type {any} */ r)=>`${t.purpose}:${r.scope}:${r.id}`);
 /** @param {any} target */
 function checkTarget(target) {
-  const ok=target&&(target.purpose==='title-card'||(target.purpose==='standing'&&typeof target.characterId==='string')
+  const ok=target&&(target.purpose==='title-card'||target.purpose==='end-card'||(target.purpose==='standing'&&typeof target.characterId==='string')
     ||(['background','cg','cut-in'].includes(target.purpose)&&Array.isArray(target.refs)&&target.refs.length
       &&target.refs.every((/** @type {any} */ r)=>typeof r?.scope==='string'&&typeof r.id==='string')));
   if(!ok)throw new Error('图片目标无效。');
-  const fields=target.purpose==='title-card'?{}:target.purpose==='standing'
+  const fields=target.purpose==='title-card'||target.purpose==='end-card'?{}:target.purpose==='standing'
     ?{characterId:target.characterId,...(target.variantId?{variantId:target.variantId}:{})}:{refs:target.refs.map((/** @type {any} */ r)=>({scope:r.scope,id:r.id}))};
   return {purpose:target.purpose,...fields};
 }
@@ -70,21 +72,34 @@ export async function removeImage(projectPath,target) {
   const t=/** @type {any} */(checkTarget(target)),keys=targetKeys(t),project=await readProject(projectPath);
   project.images=(project.images??[]).filter((/** @type {any} */ e)=>!overlaps(e,keys));
   const loaded=await loadDirectorProject(projectPath,{project});
-  const still=t.purpose==='title-card'?loaded.backgrounds.bindings.titleCard
+  const still=t.purpose==='title-card'?loaded.backgrounds.bindings.titleCard:t.purpose==='end-card'?loaded.backgrounds.bindings.endCard
     :t.purpose==='standing'?(t.variantId?loaded.characterImages.bindings[t.characterId]?.variants?.[t.variantId]:loaded.characterImages.bindings[t.characterId]?.standing)
     :t.refs.some((/** @type {any} */ r)=>/** @type {any} */(loaded.backgrounds.bindings)[r.scope]?.[r.id]);
   if(still)project.images.push({...t,remove:true});
   return commit(projectPath,project);
 }
-/** A bound portrait's avatar square and facing. @param {string} projectPath @param {any} target @param {{crop?:any,flip?:any}} settings */
-export async function adjustPortrait(projectPath,target,settings) {
+/** Applies one portrait adjustment onto project.images in memory. @param {any[]} images @param {any} target @param {{crop?:any,flip?:any}} settings */
+function applyPortraitAdjustment(images,target,settings) {
   const t=checkTarget(target);
   if(t.purpose!=='standing')throw new Error('只有立绘可以调整头像范围与朝向。');
-  const keys=targetKeys(t),project=await readProject(projectPath),images=project.images??[];
+  const keys=targetKeys(t);
   const own=images.find((/** @type {any} */ e)=>!e.remove&&!e.adjust&&overlaps(e,keys));
   const values=Object.fromEntries(['crop','flip'].filter(k=>settings[k]!=null).map(k=>[k,settings[k]]));
-  if(own)Object.assign(own,values);
-  else project.images=[...images.filter((/** @type {any} */ e)=>!(e.adjust&&overlaps(e,keys))),{...t,adjust:true,...values}];
+  if(own){Object.assign(own,values);return images;}
+  return [...images.filter((/** @type {any} */ e)=>!(e.adjust&&overlaps(e,keys))),{...t,adjust:true,...values}];
+}
+/** A bound portrait's avatar square and facing. @param {string} projectPath @param {any} target @param {{crop?:any,flip?:any}} settings */
+export async function adjustPortrait(projectPath,target,settings) {
+  const project=await readProject(projectPath);
+  project.images=applyPortraitAdjustment([...(project.images??[])],target,settings);
+  return commit(projectPath,project);
+}
+/** Applies many portrait avatar/facing adjustments in one atomic commit. @param {string} projectPath @param {Array<{target:any,crop?:any,flip?:any}>} items */
+export async function adjustPortraitsBatch(projectPath,items) {
+  const project=await readProject(projectPath);
+  let images=[...(project.images??[])];
+  for(const item of items)images=applyPortraitAdjustment(images,item.target,{crop:item.crop,flip:item.flip});
+  project.images=images;
   return commit(projectPath,project);
 }
 
@@ -140,6 +155,9 @@ export async function editDescription(projectPath,edit,value) {
   if(edit?.kind==='cover') {
     if(design){design.doc.titleCard={prompt:text(value.prompt)};changed.add(design);}
     else project.titleCard={prompt:text(value.prompt)};
+  } else if(edit?.kind==='endCard') {
+    if(design){design.doc.endCard={prompt:text(value.prompt)};changed.add(design);}
+    else project.endCard={prompt:text(value.prompt)};
   } else if(edit?.kind==='ambient')each('ambients',a=>a.id===edit.id,a=>{a.prompt=text(value.prompt);});
   else if(edit?.kind==='location')each('backgrounds',b=>b.locations?.some((/** @type {string} */ id)=>edit.locations.includes(id)),b=>{b.prompt=text(value.prompt);});
   else if(edit?.kind==='cg')each('cgs',c=>c.id===edit.id,c=>{c.prompt=text(value.prompt);});
@@ -150,7 +168,7 @@ export async function editDescription(projectPath,edit,value) {
     else{if(v.face!==undefined||value.face)v.face=text(value.face);if(v.body!==undefined||value.body)v.body=(value.body??'').trim();}
   });
   else throw new Error('不支持的描述。');
-  if(!changed.size&&edit.kind!=='cover')throw new Error('导演稿里没有找到这条描述；没有导演提示词的图片只能上传。');
+  if(!changed.size&&!['cover','endCard'].includes(edit.kind))throw new Error('导演稿里没有找到这条描述；没有导演提示词的图片只能上传。');
   return saveRevisions(projectPath,set,changed);
 }
 
@@ -221,7 +239,8 @@ export async function packWork(loaded,projectPath) {
   const settings=validateExportImages(project.exportImages);
   const {backgrounds,characterImages,extra,stats}=await packageImages({backgrounds:loaded.backgrounds,characterImages:loaded.characterImages,
     extra:packed?.extra??null},settings,path.join(path.dirname(projectPath),'.cache','webp'));
-  const zip=await exportStoryPackage(/** @type {string} */(job.readableOutput),backgrounds,{characterImages,complete,extra});
+  const credits=await workCredits(loaded,projectPath);
+  const zip=await exportStoryPackage(/** @type {string} */(job.readableOutput),backgrounds,{characterImages,complete,extra,audio:loaded.audio,credits});
   return {bytes:new Uint8Array(await zip.arrayBuffer()),stats};
 }
 /** The work as a .vn.zip with its images, written to export/ in the work folder. @param {string} projectPath @param {string} out */
@@ -229,6 +248,84 @@ export async function exportWork(projectPath,out) {
   const {bytes,stats}=await packWork(await loadDirectorProject(projectPath),projectPath);
   await writeAtomic(out,bytes);
   return {out,stats};
+}
+/* The work's voices (the voice record: labels, cast, portraits), kept in voices.json beside the project; checked with the
+ * story before anything is written. */
+/** @param {string} projectPath @param {unknown} value */
+export async function setVoices(projectPath,value) {
+  const project=await readProject(projectPath),filename=path.join(path.dirname(path.resolve(projectPath)),'voices.json');
+  project.voices='voices.json';
+  return commit(projectPath,project,new Map([[filename,json(value)]]));
+}
+/* The work's music and sound lists (director/music.json, director/sounds.json, the shape of the project's `music` and
+ * `sounds` files). A work without one starts from the record its text already has. */
+/** @param {string} projectPath @param {'music'|'sounds'} kind */
+async function audioList(projectPath,kind) {
+  const project=await readProject(projectPath),dir=path.dirname(path.resolve(projectPath));
+  if(typeof project[kind]==='string') {
+    const filename=path.resolve(dir,project[kind]);
+    return {project,filename,list:JSON.parse(await readFile(filename,'utf8'))};
+  }
+  const {story}=await loadDirectorProject(projectPath);
+  const list=kind==='music'?{tracks:structuredClone(story.music?.tracks??[]),cues:structuredClone(story.music?.cues??[])}
+    :structuredClone(story.sounds??{sounds:[],places:{},blocks:{},effects:[]});
+  project[kind]=`${kind}.json`;
+  return {project,filename:path.join(dir,`${kind}.json`),list};
+}
+const entriesOf=(/** @type {any} */ list,/** @type {'music'|'sounds'} */ kind)=>/** @type {any[]} */(kind==='music'?list.tracks:list.sounds);
+/**
+ * Binds an audio file to a track or a sound: the file goes to audio/ beside the project, named by its SHA-256, with
+ * where it came from.
+ * @param {string} projectPath @param {'music'|'sounds'} kind @param {string} id @param {Uint8Array} bytes
+ * @param {{name?:string,source?:Record<string,string>}} [about]
+ */
+export async function bindAudioFile(projectPath,kind,id,bytes,about={}) {
+  const type=audioType(bytes),ext=AUDIO_TYPES[type],sha=createHash('sha256').update(bytes).digest('hex');
+  const {project,filename,list}=await audioList(projectPath,kind),entry=entriesOf(list,kind).find(e=>e.id===id);
+  if(!entry)throw new Error(`没有这个${kind==='music'?'曲目':'声音'}：${id}`);
+  const file=path.join(path.dirname(filename),'audio',`${sha}.${ext}`);
+  if(!await exists(file))await writeAtomic(file,bytes);
+  entry.file=`audio/${sha}.${ext}`;
+  const source=validateAudioSource(about.source);
+  if(source)entry.source=source;else delete entry.source;
+  return commit(projectPath,project,new Map([[filename,json(list)]]));
+}
+/** Takes a track's or a sound's file away, including one the input package bound. @param {string} projectPath @param {'music'|'sounds'} kind @param {string} id */
+export async function removeAudioFile(projectPath,kind,id) {
+  const {project,filename,list}=await audioList(projectPath,kind),entry=entriesOf(list,kind).find(e=>e.id===id);
+  if(!entry)throw new Error(`没有这个${kind==='music'?'曲目':'声音'}：${id}`);
+  entry.file=null;delete entry.source;
+  return commit(projectPath,project,new Map([[filename,json(list)]]));
+}
+/**
+ * Edits the sounds: a sound's name or search words, new sounds, and the ambience of places ({place: soundId|null}).
+ * @param {string} projectPath @param {{edit?:{id:string,name?:string,query?:string},add?:any[],places?:Record<string,string|null>}} change
+ */
+export async function editSounds(projectPath,{edit,add=[],places}) {
+  const {project,filename,list}=await audioList(projectPath,'sounds');
+  if(edit) {
+    const sound=list.sounds.find((/** @type {any} */ s)=>s.id===edit.id);
+    if(!sound)throw new Error(`没有这个声音：${edit.id}`);
+    if(edit.name!==undefined)sound.name=edit.name;
+    if(edit.query!==undefined){if(edit.query.trim())sound.query=edit.query.trim();else delete sound.query;}
+  }
+  for(const sound of add)list.sounds.push(sound);
+  if(places)for(const [place,id] of Object.entries(places)){if(id)list.places[place]=id;else delete list.places[place];}
+  return commit(projectPath,project,new Map([[filename,json(list)]]));
+}
+/** Saves the work's notice, whether vnify. is credited and the agents' models. @param {string} projectPath @param {unknown} value */
+export async function setCredits(projectPath,value) {
+  const project=await readProject(projectPath),settings=creditSettings(value);
+  project.credits=settings;
+  return commit(projectPath,project,new Map());
+}
+/** Edits a track's name or prompt. @param {string} projectPath @param {string} id @param {{name?:string,prompt?:string}} change */
+export async function editTrack(projectPath,id,{name,prompt}) {
+  const {project,filename,list}=await audioList(projectPath,'music'),track=list.tracks.find((/** @type {any} */ t)=>t.id===id);
+  if(!track)throw new Error(`没有这首曲目：${id}`);
+  if(name!==undefined)track.name=name;
+  if(prompt!==undefined){if(prompt.trim())track.prompt=prompt.trim();else delete track.prompt;}
+  return commit(projectPath,project,new Map([[filename,json(list)]]));
 }
 /** Saves how a work's images go into its package. @param {string} projectPath @param {unknown} value */
 export async function setExportImages(projectPath,value) {
@@ -272,7 +369,7 @@ export async function createDirectorProject(workDir,input) {
     const [w,h]=r.split(':').map(Number),[bw,bh]=best.split(':').map(Number);
     return Math.abs(w/h-scene.width/scene.height)<Math.abs(bw/bh-scene.width/scene.height)?r:best;
   }):null;
-  const options={protocolVersion:DIRECTOR_VERSION,enabled:true,titleCard:!!story.titleCard,...(ratio?{ratio}:{}),
+  const options={protocolVersion:DIRECTOR_VERSION,enabled:true,titleCard:!!story.titleCard,endCard:!!story.endCard,...(ratio?{ratio}:{}),
     ...Object.fromEntries(DIRECTOR_IMAGE_FLAGS.map(flag=>[flag,generation[flag]??(docs.length?false:['standing','locationBackgrounds'].includes(flag))]))};
   const projectPath=path.join(workDir,'director','project.json');
   if(await exists(projectPath))throw new Error('这部作品已有导演清单。');

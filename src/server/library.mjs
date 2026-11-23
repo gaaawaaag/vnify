@@ -1,15 +1,17 @@
 // @ts-check
 /** @import {IncomingMessage,ServerResponse} from 'node:http' */
-/** @import {BookListing,BookMeta,CommitRequest,Progress,ReadingDays,ReadingSession} from '../types/library.js' */
+/** @import {BookListing,BookMeta,BookRecord,CommitRequest,Progress,ReadingDays,ReadingRecord,ReadingSession,ReadingStats} from '../types/library.js' */
 /** @import {ContentStore,HomeStore,ReadingStore} from './library-storage.mjs' */
 import { createHash } from 'node:crypto';
 import { pipeline } from 'node:stream/promises';
 import { crc32, zipLayout } from '../core/zip-store.js';
 import { imageHeader } from '../core/image-header.js';
 import { IMAGE_LIMIT, imageOrientation } from '../reader/backgrounds.js';
+import { AUDIO_LIMIT, audioType } from '../reader/audio-assets.js';
 import { DEFAULT_LANGUAGE, isBookLanguage } from '../core/language.js';
 import { readPackage } from '../reader/story-package.js';
 import { checkBookInfo, withBookInfo } from '../core/parser.js';
+import { checkBlurb, readBlurb, withBlurb } from '../core/blurb.js';
 import { createDiskStorage } from './library-storage.mjs';
 import { allowed, fail, readBody, send } from './http.mjs';
 
@@ -17,9 +19,10 @@ import { allowed, fail, readBody, send } from './http.mjs';
 // reading sessions per device) kept apart, by a storage backend (library-storage.mjs). Images are named by their SHA-256, so a sync only uploads images the book lacks.
 // The page reaches it only through /api/library.
 const KEY = /^[a-z][a-z0-9_-]{0,79}$/;
-const ASSET = /^assets\/(backgrounds|characters|extra)\/([a-f0-9]{64})\.(png|jpg|webp)$/;
+const ASSET = /^assets\/(?:(backgrounds|characters|extra)\/([a-f0-9]{64})\.(png|jpg|webp)|(audio)\/([a-f0-9]{64})\.(mp3|m4a|ogg))$/;
+const ASSET_FOLDERS = ['backgrounds', 'characters', 'extra', 'audio'];
 const COVER_TYPES = { 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png' };
-const FILE_TYPES = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp', json: 'application/json; charset=utf-8', txt: 'text/plain; charset=utf-8' };
+const FILE_TYPES = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp', mp3: 'audio/mpeg', m4a: 'audio/mp4', ogg: 'audio/ogg', json: 'application/json; charset=utf-8', txt: 'text/plain; charset=utf-8' };
 const MB = 1024 * 1024;
 const DEVICE = /^[A-Za-z0-9_-]{1,64}$/;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -33,6 +36,25 @@ function latestPosition(positions) {
   const latest = valid.reduce((a, b) => ((b.savedAt ?? 0) > (a.savedAt ?? 0) ? b : a));
   const furthest = Math.max(...valid.map(value => value.furthest ?? value.index));
   return { ...latest, furthest: Math.max(furthest, latest.index) };
+}
+// Whether a position is at the last unit of a book that is all there (not still being made).
+/** @param {Pick<Progress,'index'|'furthest'|'count'>} position @param {BookMeta} meta */
+const atEnd = (position, meta) => meta.complete && count(position.count) && Math.max(position.index, position.furthest ?? 0) + 1 >= /** @type {number} */ (position.count);
+// The first time any device finished the book.
+/** @param {ReadingRecord[]} records @returns {number|null} */
+function finishedAt(records) {
+  const times = /** @type {number[]} */ (records.map(record => record?.finishedAt).filter(count));
+  return times.length ? Math.min(...times) : null;
+}
+const RATING = (/** @type {unknown} */ value) => Number.isInteger(value) && /** @type {number} */ (value) >= 1 && /** @type {number} */ (value) <= 5;
+const REVIEW_LIMIT = 2000;
+// The rating and review set last on any device.
+/** @param {ReadingRecord[]} records @returns {{rating:number|null,review:string}} */
+function latestReview(records) {
+  const reviewed = records.filter(record => count(record?.reviewedAt));
+  if (!reviewed.length) return { rating: null, review: '' };
+  const latest = reviewed.reduce((a, b) => (/** @type {number} */ (b.reviewedAt) > /** @type {number} */ (a.reviewedAt) ? b : a));
+  return { rating: RATING(latest.rating) ? /** @type {number} */ (latest.rating) : null, review: typeof latest.review === 'string' ? latest.review : '' };
 }
 // The home page background: the default photo, the cover of the book read last, or an uploaded picture; dim is a
 // brightness percentage. The uploaded picture stays when another choice is made, so switching back costs nothing.
@@ -108,7 +130,8 @@ export function createLibrary(root) {
   /* Fields the shelf shows that older books lack: the original book's cover (from an EPUB, kept in extra.json) among
    * the package files, for shelves that prefer it to the made cover, and the work's language and picture orientation for
    * its marks. Books committed before a field existed get it on their first listing. */
-  const complete = (/** @type {BookMeta} */ meta) => meta.originalCover !== undefined && meta.lang !== undefined && meta.orientation !== undefined;
+  const complete = (/** @type {BookMeta} */ meta) => meta.originalCover !== undefined && meta.lang !== undefined && meta.orientation !== undefined
+    && meta.blurb !== undefined;
   /** @param {string} key @param {BookMeta} meta */
   async function withShelfFields(key, meta) {
     if (complete(meta)) return meta;
@@ -118,7 +141,11 @@ export function createLibrary(root) {
       if (!current) return meta;
       if (complete(current)) return current;
       if (current.originalCover === undefined) current.originalCover = originalCoverPath((await readJSON(key, 'package/extra.json'))?.cover, current.files);
-      if (current.lang === undefined) current.lang = storyLanguage((await content.read(key, 'package/story.vn.txt'))?.toString('utf8') ?? '');
+      if (current.lang === undefined || current.blurb === undefined) {
+        const text = (await content.read(key, 'package/story.vn.txt'))?.toString('utf8') ?? '';
+        if (current.lang === undefined) current.lang = storyLanguage(text);
+        if (current.blurb === undefined) { try { current.blurb = readBlurb(text); } catch { current.blurb = null; } }
+      }
       if (current.orientation === undefined) {
         const images = (await readJSON(key, 'package/manifest.json'))?.backgrounds?.images;
         current.orientation = imageOrientation(Object.values(images && typeof images === 'object' ? images : {}));
@@ -126,6 +153,45 @@ export function createLibrary(root) {
       await content.write(key, 'meta.json', JSON.stringify(current));
       return current;
     });
+  }
+  /* When the book was first finished. Positions saved before records existed that already reached the end of a complete
+   * book become a record of the device that saved them, dated by that save, on the first listing. */
+  /** @param {string} key @param {BookMeta} meta @param {Progress|null} progress @returns {Promise<number|null>} */
+  async function finished(key, meta, progress) {
+    const records = await reading.records(key), time = finishedAt(records);
+    if (time !== null || !progress || !atEnd(progress, meta) || !count(progress.savedAt)) return time;
+    const device = typeof progress.device === 'string' && DEVICE.test(progress.device) ? progress.device : 'migrated';
+    await serial(key, () => markFinished(key, device, /** @type {number} */ (progress.savedAt)));
+    return /** @type {number} */ (progress.savedAt);
+  }
+  // Notes the first time this device finished the book; a later finish keeps the first.
+  /** @param {string} key @param {string} device @param {number} time */
+  async function markFinished(key, device, time) {
+    const own = (await reading.records(key)).find(record => record?.device === device);
+    if (own && count(own.finishedAt)) return;
+    await reading.putRecord(key, { ...own, device, finishedAt: time });
+  }
+  // The book's reading over every device: time, dates, first start, first finish, and the latest rating and review.
+  /** @param {string} key @returns {Promise<BookRecord>} */
+  async function bookRecord(key) {
+    const records = await reading.records(key), dates = new Set();
+    let active = 0, startedAt = /** @type {number|null} */ (null);
+    for (const record of await reading.sessions(key)) {
+      for (const session of Array.isArray(record?.sessions) ? record.sessions : []) {
+        if (!count(session?.active)) continue;
+        active += session.active;
+        if (count(session.start) && (startedAt === null || session.start < startedAt)) startedAt = session.start;
+        for (const [date, time] of Object.entries(session.days ?? {})) if (DAY.test(date) && count(time) && time > 0) dates.add(date);
+      }
+    }
+    return { finishedAt: finishedAt(records), startedAt, active, days: dates.size, ...latestReview(records) };
+  }
+  // Sets this device's rating and review; the shelf answers with the book's record.
+  /** @param {string} key @param {string} device @param {number|null} rating @param {string} review */
+  async function putReview(key, device, rating, review) {
+    if (!await content.has(key, 'meta.json')) throw fail(404, '书架上没有这本作品。');
+    const own = (await reading.records(key)).find(record => record?.device === device);
+    await reading.putRecord(key, { ...own, device, rating, review, reviewedAt: Date.now() });
   }
   /** @returns {Promise<BookListing[]>} */
   async function list() {
@@ -139,7 +205,7 @@ export function createLibrary(root) {
       const { files, ...visible } = meta;
       books.push({ key, ...visible, progress: progress && {
         index: progress.index, count: progress.count, furthest: progress.furthest, chapter: progress.chapter ?? '', savedAt: progress.savedAt,
-      } });
+      }, finishedAt: await finished(key, meta, progress), rating: latestReview(await reading.records(key)).rating });
     }
     const recent = book => Math.max(book.progress?.savedAt || 0, book.addedAt || 0);
     return books.sort((a, b) => recent(b) - recent(a));
@@ -175,13 +241,13 @@ export function createLibrary(root) {
   async function putAsset(key, name, body) {
     const match = ASSET.exec(name);
     if (!match) throw fail(400, '无效图片路径。');
-    if (createHash('sha256').update(body).digest('hex') !== match[2]) throw fail(400, '图片校验失败。');
+    if (createHash('sha256').update(body).digest('hex') !== (match[2] ?? match[5])) throw fail(400, '图片校验失败。');
     if (!await content.has(key, `package/${name}`)) await content.write(key, `package/${name}`, body);
   }
   /** @param {string} key @returns {Promise<string[]>} */
   async function assets(key) {
     const found = [];
-    for (const folder of ['backgrounds', 'characters', 'extra']) {
+    for (const folder of ASSET_FOLDERS) {
       for (const name of await content.list(key, `package/assets/${folder}`)) if (ASSET.test(`assets/${folder}/${name}`)) found.push(`assets/${folder}/${name}`);
     }
     return found;
@@ -196,6 +262,14 @@ export function createLibrary(root) {
     if (!header || header.type !== img.type || header.width !== img.width || header.height !== img.height) {
       throw fail(400, '图片格式或尺寸与清单不一致。');
     }
+  }
+  // An uploaded audio file must be of the type the manifest declares.
+  /** @param {string} key @param {string} name @param {{type:string}} file */
+  async function checkAudio(key, name, file) {
+    /** @type {string|null} */
+    let type = null;
+    try { type = audioType(await content.head(key, `package/${name}`, 16) ?? new Uint8Array()); } catch {}
+    if (type !== file.type) throw fail(400, '音频格式与清单不一致。');
   }
   /* Text files arrive with the list of uploaded images. The book is checked as a whole (text, manifest, every binding
    * and image) before anything is replaced, so pages and other tools can trust what the shelf holds. */
@@ -212,6 +286,7 @@ export function createLibrary(root) {
       book = await readPackage({
         text: async (name, limit) => { const text = texts[name] ?? null; return text !== null && Buffer.byteLength(text) <= limit ? text : null; },
         image: async (name, _id, img) => { await checkImage(key, name, img); return {}; },
+        audio: async (name, _id, file) => { await checkAudio(key, name, file); return {}; },
       });
     } catch (/** @type {any} */ error) { throw error.status ? error : fail(400, error.message); }
     if (book.story.book.id.toLowerCase() !== key) throw fail(400, '作品信息无效。');
@@ -234,25 +309,32 @@ export function createLibrary(root) {
       bookId: book.story.book.id, title: title.slice(0, 200), author: author?.slice(0, 200) ?? null, complete: book.complete,
       addedAt: previous?.addedAt || now, updatedAt: now, cover: previous?.cover ?? null,
       originalCover: originalCoverPath(book.extra?.cover, paths),
-      lang: book.story.book.lang, orientation: imageOrientation(Object.values(book.backgrounds.images)),
+      lang: book.story.book.lang, orientation: imageOrientation(Object.values(book.backgrounds.images)), blurb: book.story.blurb ?? null,
       files: ['manifest.json', 'story.vn.txt', ...(extra !== null ? ['extra.json'] : []), ...paths],
     };
     await content.write(key, 'meta.json', JSON.stringify(record));
     return { updatedAt: now };
   }
-  /* A new title and author, written into the stored text's @book line so an exported package carries them too. The
-   * reading units stay the same, so positions keep; the version still moves on, since the text file changed. */
+  /* A new title and author, written into the stored text's @book line, and a new blurb, into its blurb record, so an
+   * exported package carries them too. The reading units stay the same, so positions keep; the version still moves on,
+   * since the text file changed. */
   /** @param {string} key @param {unknown} value */
   async function putInfo(key, value) {
-    let info;
-    try { info = checkBookInfo(value); } catch (/** @type {any} */ error) { throw fail(400, error.message); }
+    let info, blurb;
+    try {
+      info = checkBookInfo(value);
+      // A blurb left out keeps the one the text has; an empty one removes it.
+      const given = /** @type {{blurb?:unknown}|null} */ (value)?.blurb;
+      blurb = given === undefined ? undefined : checkBlurb(given) || null;
+    } catch (/** @type {any} */ error) { throw fail(400, error.message); }
     /** @type {BookMeta|null} */
     const meta = await readJSON(key, 'meta.json'), story = await content.read(key, 'package/story.vn.txt');
     if (!meta || !story) throw fail(404, '书架上没有这本作品。');
-    if (meta.title === info.title && meta.author === info.author) return { updatedAt: meta.updatedAt };
-    await content.write(key, 'package/story.vn.txt', withBookInfo(story.toString('utf8'), info));
+    const text = story.toString('utf8'), current = readBlurb(text), next = blurb === undefined ? current : blurb;
+    if (meta.title === info.title && meta.author === info.author && next === current) return { updatedAt: meta.updatedAt };
+    await content.write(key, 'package/story.vn.txt', withBlurb(withBookInfo(text, info), next));
     const updatedAt = Math.max(Date.now(), meta.updatedAt + 1);
-    await content.write(key, 'meta.json', JSON.stringify({ ...meta, ...info, updatedAt }));
+    await content.write(key, 'meta.json', JSON.stringify({ ...meta, ...info, blurb: next, updatedAt }));
     return { updatedAt };
   }
   /* One file of a book. Images are named by their content, so a cached copy never goes stale. The text files change
@@ -312,7 +394,14 @@ export function createLibrary(root) {
   // Adds or replaces one session in the device's record of the book; the page sends a session again as it grows.
   /** @param {string} key @param {string} device @param {ReadingSession} session */
   async function putSession(key, device, session) {
-    if (!await content.has(key, 'meta.json')) throw fail(404, '书架上没有这本作品。');
+    /** @type {BookMeta|null} */
+    const meta = await readJSON(key, 'meta.json');
+    if (!meta) throw fail(404, '书架上没有这本作品。');
+    // The device's record keeps the book's name for the statistics, written only when it changes.
+    const own = (await reading.records(key)).find(record => record?.device === device);
+    if (own?.title !== meta.title || (own?.author ?? null) !== (meta.author ?? null)) {
+      await reading.putRecord(key, { ...own, device, title: meta.title, author: meta.author ?? null });
+    }
     const record = await reading.deviceSessions(key, device);
     const sessions = (Array.isArray(record?.sessions) ? record.sessions : []).filter(item => item?.id !== session.id);
     sessions.push(session);
@@ -367,6 +456,22 @@ export function createLibrary(root) {
     return Object.fromEntries(Object.entries(days).sort(([a], [b]) => a.localeCompare(b)));
   }
 
+  // Every day's reading, and each book read: its name (from the shelf, else as last recorded), finish and rating.
+  /** @returns {Promise<ReadingStats>} */
+  async function stats() {
+    const shelved = new Set(await content.keys()), books = [];
+    for (const key of await reading.keys()) {
+      if (!KEY.test(key)) continue;
+      const records = await reading.records(key);
+      /** @type {BookMeta|null} */
+      const meta = shelved.has(key) ? await readJSON(key, 'meta.json') : null;
+      const named = records.filter(record => typeof record?.title === 'string').at(-1);
+      books.push({ key, title: meta?.title ?? named?.title ?? null, author: meta ? meta.author ?? null : named?.author ?? null,
+        onShelf: !!meta, finishedAt: finishedAt(records), rating: latestReview(records).rating });
+    }
+    return { days: await readingDays(null, null), books };
+  }
+
   /** @param {IncomingMessage} req @param {ServerResponse} res @param {string} pathname @param {string|null} origin */
   async function handle(req, res, pathname, origin) {
     try {
@@ -395,6 +500,11 @@ export function createLibrary(root) {
         }
         throw fail(404, '不支持的操作。');
       }
+      if (parts.length === 1 && parts[0] === '_stats') {
+        if (method !== 'GET') throw fail(405, '不支持的操作。');
+        send(res, 200, await stats());
+        return;
+      }
       if (parts.length === 1 && parts[0] === '_days') {
         if (method !== 'GET') throw fail(405, '不支持的操作。');
         const query = new URL(req.url ?? '', 'http://localhost').searchParams;
@@ -416,7 +526,7 @@ export function createLibrary(root) {
       if (route === 'GET file') { await sendFile(req, res, key, rest.join('/')); return; }
       if (route === 'GET assets') { send(res, 200, { assets: await assets(key) }); return; }
       if (route === 'PUT asset') {
-        const body = await readBody(req, IMAGE_LIMIT);
+        const body = await readBody(req, rest[1] === 'audio' ? AUDIO_LIMIT : IMAGE_LIMIT);
         await serial(key, () => putAsset(key, rest.join('/'), body));
         send(res, 200, { ok: true });
         return;
@@ -446,9 +556,22 @@ export function createLibrary(root) {
           if (value.version !== undefined && value.version !== meta.updatedAt) throw fail(409, '作品已在别处更新，请回到书架重新打开。');
           const now = Date.now();
           await reading.putPosition(key, value.device, { ...value, savedAt: now });
+          // Reaching the end once finishes the book for good; turning back afterwards does not undo it.
+          if (atEnd(value, meta)) await markFinished(key, value.device, now);
           return now;
         });
         send(res, 200, { ok: true, savedAt });
+        return;
+      }
+      if (route === 'GET record') { send(res, 200, await bookRecord(key)); return; }
+      if (route === 'PUT review') {
+        const value = JSON.parse((await readBody(req, MB)).toString('utf8'));
+        const { device, rating, review } = value ?? {};
+        if (typeof device !== 'string' || !DEVICE.test(device) || !(rating === null || RATING(rating)) || typeof review !== 'string' || review.length > REVIEW_LIMIT) {
+          throw fail(400, '评分或短评无效。');
+        }
+        await serial(key, () => putReview(key, device, rating, review.trim()));
+        send(res, 200, await bookRecord(key));
         return;
       }
       if (route === 'PUT session') {

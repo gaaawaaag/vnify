@@ -9,7 +9,13 @@ export type ImagePurpose='background'|'cg'|'cut-in'|'title-card'|'standing';
 
 // Project settings (project.json `options`); directorGeneration turns the switches into a Generation.
 export interface DirectorSettings {
-  protocolVersion?:number;enabled?:boolean;backgrounds?:boolean;titleCard?:boolean;
+  protocolVersion?:number;enabled?:boolean;backgrounds?:boolean;titleCard?:boolean;endCard?:boolean;
+  // Whether the whole-book design writes voice portraits (narrator, other characters, speaking characters).
+  voicePortraits?:boolean;
+  // Whether the whole-book design writes the track list for background music.
+  musicTracks?:boolean;
+  // How many tracks the list has: few, medium or rich.
+  musicDensity?:Density;
   ambients?:boolean;locationBackgrounds?:boolean;cgs?:boolean;cutIns?:boolean;standing?:boolean;
   characterVariants?:boolean;locationVariants?:boolean;
   // The user's own requirement for how object descriptions are written; empty for English natural language.
@@ -81,7 +87,7 @@ export interface CgTask extends TaskBase,Absent<CharacterFields|'cutInId'|keyof 
 export interface CutInTask extends TaskBase,Absent<CharacterFields|Exclude<SceneFields,'cutInId'>|keyof VariantJob> {
   purpose:'cut-in';cutInId:string;refs:TaskRef[];
 }
-export interface TitleCardTask extends TaskBase,Absent<'refs'|CharacterFields|SceneFields|keyof VariantJob> {purpose:'title-card'}
+export interface TitleCardTask extends TaskBase,Absent<'refs'|CharacterFields|SceneFields|keyof VariantJob> {purpose:'title-card'|'end-card'}
 export interface CharacterTask extends TaskBase,VariantJob,Absent<'refs'|SceneFields> {
   purpose:'standing';characterId:string;transparentBackground:boolean;removeBackground?:boolean;aspectRatio:'2:3';
 }
@@ -89,24 +95,37 @@ export type ImageTask=BackgroundTask|CgTask|CutInTask|TitleCardTask|CharacterTas
 // What binding a finished image needs to know about its job.
 export type BindTarget={purpose:'standing';characterId:string;variantId?:string|null;refs?:never}
   |{purpose:'background'|'cg'|'cut-in';refs:TaskRef[];characterId?:never;variantId?:string|null}
-  |{purpose:'title-card';refs?:never;characterId?:never;variantId?:never};
+  |{purpose:'title-card'|'end-card';refs?:never;characterId?:never;variantId?:never};
 export type QueuedTask=ImageTask&{taskIds:string[]};
 export type HeldTask=QueuedTask&{reason:string};
 
 // Production presets (presets.json at the production environment's root), edited in the manager and read by the agent.
 export type Delivery='text'|'prompts'|'images';
 export type Density='few'|'medium'|'rich';
-export type ImageKind='cover'|'ambient'|'location'|'cg'|'closeup'|'standing'|'characterVariants'|'locationVariants';
+export type ImageKind='cover'|'endCard'|'ambient'|'location'|'cg'|'closeup'|'standing'|'characterVariants'|'locationVariants';
 // model: the director decides; expand: the user's direction, written out by the model; fixed: used as written.
 // How one art style side is set: the director decides, writes out a direction, or the user's text is used as is.
 export type StyleMode='model'|'expand'|'fixed';
 export interface ArtStyleChoice {mode:StyleMode;text:string}
-export interface KindChoice {on:boolean;density:Density;notes:string}
+// search: for places and moods, the agent first looks for a photo in the image libraries before drawing.
+export interface KindChoice {on:boolean;density:Density;notes:string;search?:boolean}
+export type SoundSource='local'|'freesound'|'generate';
+export interface SourceChoice {id:SoundSource;on:boolean}
+export type VoiceSource='fish'|'elevenlabs'|'gemini';
+export interface VoiceSourceChoice {id:VoiceSource;on:boolean}
 export interface Preset {
   delivery:Delivery;style:'style'|'style-no-tags'|'style-original';dossier:'off'|'simple'|'detailed';terms:boolean;textNotes:string;
   orientation:'landscape'|'portrait';ratio:string;styles:{background:ArtStyleChoice;character:ArtStyleChoice};
   // drawing: the agent's host tool (notes: how to write for it), or image service presets mounted per use (docs/prompt-formats.md).
   drawing:{mode:'agent'|'presets';notes:string;uses:Partial<Record<'background'|'cg'|'cutin'|'cover'|'standing'|'variant',string>>};
   transparency:'native'|'cutout';limit:number|null;kinds:Record<ImageKind,KindChoice>;
+  // voice: none, voice portraits from the director, or portraits plus voices the agent assigns from voiceSources.
+  // effects: none, or sounds from the sound director with files bound by the agent; density for effects.
+  // music: none, the track list and cues as prompts, or those plus files the agent finds or generates; musicDensity for tracks and cues.
+  // voiceSources/effectSources/musicSources: every source in the order to try, ticked or not; generate uses effectPreset/musicPreset
+  // (audio preset IDs); generateLimit caps generated effects.
+  sound:{voice:'off'|'portraits'|'assign';voiceSources:VoiceSourceChoice[];effects:'off'|'full';density:Density;music:'off'|'prompts'|'full';
+    musicDensity:Density;musicPreset:string;effectPreset:string;notes:string;effectSources:SourceChoice[];musicSources:SourceChoice[];
+    generateLimit:number};
 }
 export interface PresetFile {version:1;default:string;presets:Record<string,Preset>}

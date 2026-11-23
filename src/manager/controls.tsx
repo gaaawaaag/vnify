@@ -1,10 +1,10 @@
 // Small controls shared by the manager's pages.
 
-export function Segmented<T extends string>({value, options, labels, onChange, small = false, label}: {
-  value: T; options: readonly T[]; labels: Record<T, string>; onChange: (value: T) => void; small?: boolean; label?: string;
+export function Segmented<T extends string>({value, options, labels, onChange, small = false, vertical = false, label}: {
+  value: T; options: readonly T[]; labels: Record<T, string>; onChange: (value: T) => void; small?: boolean; vertical?: boolean; label?: string;
 }) {
   return (
-    <div className={small ? 'seg small' : 'seg'} role="group" aria-label={label}>
+    <div className={['seg', small && 'small', vertical && 'vertical'].filter(Boolean).join(' ')} role="group" aria-label={label}>
       {options.map(option => (
         <button key={option} type="button" aria-pressed={option === value} onClick={() => onChange(option)}>{labels[option]}</button>
       ))}

@@ -61,23 +61,27 @@ export class ReaderState {
   beginUnit(mode='forward',previousIndex=null) {
     const unit=this.story.units[this.index];
     this.intro=readerIntro(this.story,this.index,mode,previousIndex);
-    const runs=this.runsAt(this.index);
+    const first=this.screenStart(this.index);
+    const runs=this.runsAt(this.index,first);
     this.glyphs=Array.from(runs.map(run=>run.text).join(''));this.visible=this.isDocument?this.glyphs.length:0;
     this.furthest=Math.max(this.furthest,this.index);
-    const retainedUnits=this.retainedFrom(this.screenStart(this.index));
+    const retainedUnits=this.retainedFrom(first);
     return {unit,runs,retainedRuns:retainedUnits.flatMap(entry=>entry.runs),retainedUnits};
   }
-  // Display runs of one unit; thoughts gain brackets that also take part in typing.
-  runsAt(index) {
-    const runs=this.characters?.glossary.runs.get(index)??this.story.units[index].runs;
-    if(this.story.units[index].kind!=='thought')return runs;
+  // Display runs of one unit; thoughts gain brackets that also take part in typing. Thoughts of one person that follow
+  // each other on a screen share one pair: the opening bracket on the first, the closing one on the last shown.
+  runsAt(index,first=index) {
+    const units=this.story.units,unit=units[index];
+    const runs=this.characters?.glossary.runs.get(index)??unit.runs;
+    if(unit.kind!=='thought')return runs;
+    const joins=(/** @type {any} */ other)=>other?.kind==='thought'&&other.speakerId===unit.speakerId;
     // Thoughts sit in brackets of the work's language.
     const [open,close]=this.story.book.lang==='en'?['(',')']:['（','）'];
-    return [{text:open},...runs,{text:close}];
+    return [...index>first&&joins(units[index-1])?[]:[{text:open}],...runs,...index<this.index&&joins(units[index+1])?[]:[{text:close}]];
   }
   // Earlier units kept on screen with the current one, from `first` up to the current unit.
   retainedFrom(first) {
-    return this.story.units.slice(first,this.index).map((unit,k)=>({index:first+k,unit,runs:this.runsAt(first+k)}));
+    return this.story.units.slice(first,this.index).map((unit,k)=>({index:first+k,unit,runs:this.runsAt(first+k,first)}));
   }
   endIntro() { this.intro=null; }
   get isDocument() { return this.story?.units[this.index]?.block.kind==='document'; }

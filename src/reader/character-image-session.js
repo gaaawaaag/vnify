@@ -10,5 +10,14 @@ export function createCharacterImageSession({onError=()=>{},onChange=()=>{}}={})
     onChange();
   }
   function avatar(bookId,id,visibleIds,expression=null,options) {return story?.book.id===bookId?resolveCharacterImage(data,id,visibleIds,expression,options):null;}
-  return {setStory,avatar};
+  // Every look of every character with a standing portrait, disclosed or not (for sizing the stage, never shown).
+  function looks() {
+    if(!data)return [];
+    return Object.entries(data.bindings).flatMap(([characterId,slots])=>
+      [[null,slots.standing],...Object.entries(slots.variants??{})].flatMap(([variantId,portrait])=>{
+        const image=portrait&&data.images[portrait.imageId];
+        return image?[{characterId,variantId,image,crop:portrait.crop??null}]:[];
+      }));
+  }
+  return {setStory,avatar,looks};
 }

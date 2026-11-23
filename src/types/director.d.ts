@@ -65,3 +65,25 @@ export interface VariantArt {
 }
 // Registration limits for variants (src/core/variants.js); absent when reading a finished work.
 export interface VariantLimits {main:Set<string>;designIds:Set<string>}
+
+// The book's music record (`// @vn-music`, src/core/music.js): tracks and the cues that start them (null: silence).
+export interface MusicTrack {id:string;name:string;prompt?:string}
+export interface MusicCue {from:string;track:string|null}
+export interface MusicRecord {tracks:MusicTrack[];cues:MusicCue[]}
+// Cues by unit index, for finding what plays at a position.
+export interface MusicCues {tracks:Map<string,MusicTrack>;cues:{index:number;track:string|null}[]}
+
+// The book's voices (`// @vn-voices`, src/core/voices.js): voices named `<service>:<id>`, who reads with which, and the
+// voice portraits written for designing them.
+export interface VoiceRecord {
+  labels:Record<string,string>;
+  cast:{narrator?:string;other?:string;characters:Record<string,string>};
+  portraits:Record<string,string>;
+}
+
+// The book's ambience and sound effects (`// @vn-sounds`, src/core/sounds.js).
+export interface SoundDefinition {id:string;name:string;kind:'ambience'|'effect';query?:string;prompt?:string}
+export interface SoundEffect {at:string;sound:string;phase:'enter'|'shown';volume?:number}
+export interface SoundRecord {sounds:SoundDefinition[];places:Record<string,string>;blocks:Record<string,string|null>;effects:SoundEffect[]}
+// Effects by unit index.
+export interface SoundIndex {effects:Map<number,SoundEffect[]>}

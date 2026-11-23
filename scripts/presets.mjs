@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 // Prints a production preset for the agent: its settings, the director project's options and its top-level transparencyMethod;
-// with mounted image service presets, the work's first imageScheme and each mounted preset's prompt format.
+// with mounted image service presets, the work's first imageScheme and each mounted preset's prompt format; where effects
+// and music come from (soundSources) and the background kinds searched for in the photo libraries first (imageSearch).
 // node scripts/presets.mjs            lists the presets and the default
 // node scripts/presets.mjs <名称>      prints that preset (the default when the name is omitted after --show)
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
-import {validatePresetFile,directorOptions,imageSchemeOf} from '../src/production/presets.js';
+import {validatePresetFile,directorOptions,imageSchemeOf,soundOptionsOf,sourcesInUse,imageSearchOf} from '../src/production/presets.js';
 import {validateImagePresets,presetName,canEdit} from '../src/production/image-presets.js';
 
 const file=fileURLToPath(new URL('../presets.json',import.meta.url));
@@ -30,6 +31,16 @@ try {
         return p?{id,name:presetName(p),uses,format:p.format,canEdit:canEdit(p)}:{id,uses,missing:true};
       });
     }
-    console.log(JSON.stringify({name,preset,directorOptions:options,transparencyMethod,...(imageScheme?{imageScheme,mounted}:{})},null,2));
+    const soundOptions=soundOptionsOf(preset);
+    // Where voices, full effects and music come from, in the order to try them; generate uses the audio preset named beside it.
+    const sound=preset.sound,voices=sourcesInUse(sound.voiceSources),effects=sourcesInUse(sound.effectSources),music=sourcesInUse(sound.musicSources);
+    const sources={...(sound.voice==='assign'?{voices}:{}),
+      ...(sound.effects==='full'?{effects,...(effects.includes('generate')?{effectPreset:sound.effectPreset,generateLimit:sound.generateLimit}:{})}:{}),
+      ...(sound.music==='full'?{music,...(music.includes('generate')?{musicPreset:sound.musicPreset}:{})}:{})};
+    const soundSources=Object.keys(sources).length?{soundSources:sources}:{};
+    // Background kinds whose pictures are first looked for in the photo libraries.
+    const imageSearch=imageSearchOf(preset);
+    console.log(JSON.stringify({name,preset,directorOptions:options,transparencyMethod,...(imageScheme?{imageScheme,mounted}:{}),...(soundOptions?{soundOptions}:{}),
+      ...soundSources,...(imageSearch?{imageSearch}:{})},null,2));
   }
 } catch(error) {console.error(error.message);process.exit(1);}

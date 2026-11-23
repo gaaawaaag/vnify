@@ -6,6 +6,7 @@ import {inspectScript} from './workflow.js';
 import {readRecord} from '../core/text-record.js';
 import {requireValid} from '../core/validation.js';
 import {scriptLines} from '../core/script-text.js';
+import {withBlurb} from '../core/blurb.js';
 
 const ID = /^[A-Za-z][A-Za-z0-9_-]*$/;
 const validId = id => { if (!ID.test(id || '') || id === 'none') throw new Error(`无效 ID：${id}`); return id; };
@@ -78,7 +79,9 @@ export function mergeBatches(records, plan, book, end = plan.length-1) {
   const author=book.author?.trim()?` author=${quote(book.author.trim())}`:'';
   // Chinese is the default, so only other languages are written out.
   const lang=book.lang&&book.lang!=='zh'?` lang=${book.lang}`:'';
-  const output=[`@vn ${version}`,`@book ${book.id} title=${quote(book.title)}${author}${lang}`,...headers.values(),...profiles.values(),'',...selectedBody].join('\n');
+  const assembled=[`@vn ${version}`,`@book ${book.id} title=${quote(book.title)}${author}${lang}`,...headers.values(),...profiles.values(),'',...selectedBody].join('\n');
+  // The project's blurb (the original book's own, else one written in the whole-book design) becomes the blurb record.
+  const output=book.blurb?.trim()?withBlurb(assembled,book.blurb):assembled;
   // Full parse catches cross-batch block collisions and state/reference problems.
   const check=inspectScript(output,plan.slice(0,end+1).flatMap(b=>b.paragraphs),{requireAnnotationContent:end===plan.length-1,annotationSources:plan.slice(0,end+1).flatMap(b=>b.annotationSources??[])});
   if(check.missing.length || check.unknown.length) throw new Error('合并后的来源覆盖不一致。');

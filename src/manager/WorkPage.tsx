@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import {
-  adjustPortrait, bindImage, editDescription, editStature, editStyles, exportWork, imageUrl, installSharp, loadWork, removeImage, setBookInfo, setPrompt,
+  adjustPortrait, bindImage, editDescription, editStature, editStyles, exportWork, imageUrl, installSharp, loadWork, removeImage, setBookInfo, setCredits, setPrompt,
   type Asset, type AssetImage, type Bound, type Category, type Crop, type Flip, type WorkDetail, type ExportImages,
 } from './api';
 import {Hint, Segmented, Switch} from './controls';
@@ -11,6 +11,9 @@ import {chosenPrompt} from '../production/prompt-formats.js';
 import {STATURE_RANGE} from '../core/variants.js';
 import {isPortraitShape} from '../reader/portrait-shape.js';
 import {text} from './text';
+import {VoicePane, VoiceTitles, assigned} from './WorkVoices';
+import {AudioTitles, MusicPane, PLACES, PlacesPane, SoundPane} from './WorkAudio';
+import {ImageSearchPanel} from './ImageSearchService';
 
 const CATS: Category[] = ['cover', 'ambient', 'location', 'character', 'cg', 'cutin'];
 // People and places keep their names under the spoiler fog; scenes and objects may give the plot away.
@@ -32,7 +35,9 @@ function avatarCrop({width, height, crop}: Bound): Crop {
  * prompts. Changes go to the director project at once; text edits are saved with their own buttons. */
 export function WorkPage({id, onBack}: {id: string; onBack: () => void}) {
   const [work, setWork] = useState<WorkDetail | null>(null);
-  const [cat, setCat] = useState<Category | 'design'>('cover');
+  const [cat, setCat] = useState<Category | 'design' | 'voice' | 'sound' | 'music'>('cover');
+  const [voiceRole, setVoiceRole] = useState('narrator');
+  const [audioKey, setAudioKey] = useState('');
   const [designPart, setDesignPart] = useState<'info' | 'styles'>('info');
   const [assetKey, setAssetKey] = useState<string | null>(null);
   const [imageKey, setImageKey] = useState<string | null>(null);
@@ -64,7 +69,7 @@ export function WorkPage({id, onBack}: {id: string; onBack: () => void}) {
     setStatus(text.work.saving);
     return action.then(next => {setWork(next);setStatus(done);return true;}).catch(error => {setStatus(error.message);return false;});
   };
-  const pickCat = (next: Category | 'design') => {setCat(next);setAssetKey(null);setImageKey(null);setStep(next === 'design' ? 'asset' : 'titles');};
+  const pickCat = (next: Category | 'design' | 'voice' | 'sound' | 'music') => {setCat(next);setAudioKey('');setAssetKey(null);setImageKey(null);setStep(next === 'design' ? 'asset' : 'titles');};
   const doExport = () => {
     setStatus(text.work.exporting);
     exportWork(id, exportImages).then(({file, solid, images, detail}) => {
@@ -111,13 +116,23 @@ export function WorkPage({id, onBack}: {id: string; onBack: () => void}) {
                 {text.work.cats[c]}<span className="n">{count(c)}</span></button></li>
             ))}
             <li className="sep" />
+            <li><button aria-current={cat === 'voice' ? 'page' : undefined} onClick={() => pickCat('voice')}>{text.workVoices.cat}
+              <span className="n">{work.voices.roles.filter(r => assigned(work.voices.record, r.key)).length}/{work.voices.roles.length}</span></button></li>
+            <li><button aria-current={cat === 'sound' ? 'page' : undefined} onClick={() => pickCat('sound')}>{text.workAudio.sounds}
+              <span className="n">{Object.keys(work.audio.bound.sounds).length}/{work.audio.sounds?.sounds.length ?? 0}</span></button></li>
+            <li><button aria-current={cat === 'music' ? 'page' : undefined} onClick={() => pickCat('music')}>{text.workAudio.music}
+              <span className="n">{Object.keys(work.audio.bound.tracks).length}/{work.audio.music?.tracks.length ?? 0}</span></button></li>
+            <li className="sep" />
             <li><button aria-current={cat === 'design' ? 'page' : undefined} onClick={() => pickCat('design')}>{text.work.design}</button></li>
           </ul>
         </div>
         <div className="col titles-col">
           <button className="step-back" onClick={() => setStep('cats')}>{text.work.backTo.cats}</button>
           <ul className="titles">
-            {cat === 'design' ? (['info', 'styles'] as const).map(part => (
+            {cat === 'sound' || cat === 'music' ? <AudioTitles work={work} cat={cat} current={audioKey || (cat === 'sound' ? PLACES : work.audio.music?.tracks[0]?.id ?? '')}
+              pick={key => {setAudioKey(key);setStep('asset');}} />
+              : cat === 'voice' ? <VoiceTitles work={work} current={voiceRole} pick={key => {setVoiceRole(key);setStep('asset');}} />
+              : cat === 'design' ? (['info', 'styles'] as const).map(part => (
               <li key={part}><button aria-current={designPart === part ? 'true' : undefined} onClick={() => {setDesignPart(part);setStep('asset');}}>
                 <span className="label">{part === 'info' ? text.work.bookInfo : text.work.styles}</span></button></li>
             ))
@@ -139,7 +154,15 @@ export function WorkPage({id, onBack}: {id: string; onBack: () => void}) {
         <div className="col asset-col">
           <button className="step-back" onClick={() => setStep(cat === 'design' ? 'cats' : 'titles')}>
             {cat === 'design' ? text.work.backTo.cats : text.work.backTo.titles}</button>
-          {cat === 'design' ? designPart === 'info' ? <BookInfoPane work={work} run={run} /> : <DesignPane work={work} run={run} />
+          {cat === 'sound' ? (audioKey && audioKey !== PLACES ? <SoundPane work={work} id={audioKey} run={run} setStatus={setStatus} /> : <PlacesPane work={work} run={run} />)
+            : cat === 'music' ? <MusicPane work={work} id={audioKey || work.audio.music?.tracks[0]?.id || ''} run={run} setStatus={setStatus} />
+            : cat === 'voice' ? (() => {
+            const role = work.voices.roles.find(r => r.key === voiceRole) ?? work.voices.roles[0];
+            return role ? <VoicePane key={role.key} work={work} role={role} run={run} setStatus={setStatus}
+              fogged={fog && !opened.has(`voice:${role.key}`)} open={() => setOpened(new Set([...opened, `voice:${role.key}`]))} />
+              : <div className="empty">{text.workVoices.noLines}</div>;
+          })()
+            : cat === 'design' ? designPart === 'info' ? <BookInfoPane work={work} run={run} /> : <DesignPane work={work} run={run} />
             : asset && image ? <AssetPane key={`${asset.key}|${image.key}`} work={work} asset={asset} image={image} fogged={fogged(asset)}
               open={() => setOpened(new Set([...opened, asset.key]))} pickImage={setImageKey} run={run}
               toDesign={() => pickCat('design')} setStatus={setStatus} presets={presets} setWork={setWork} />
@@ -166,7 +189,7 @@ function AssetPane({work, asset, image, fogged, open, pickImage, run, toDesign, 
   run: Run; toDesign: () => void; setStatus: (status: string) => void; presets: ImagePreset[]; setWork: (w: WorkDetail) => void;
 }) {
   const [tab, setTab] = useState<'desc' | 'sent' | 'gen'>('desc');
-  const [tool, setTool] = useState<'crop' | null>(null);
+  const [tool, setTool] = useState<'crop' | 'search' | null>(null);
   const [warning, setWarning] = useState<{text: string; file: File; blocking: boolean} | null>(null);
   const file = useRef<HTMLInputElement>(null);
   const bound = image.bound, portrait = asset.cat === 'character', ratio = image.aspectRatio;
@@ -188,7 +211,7 @@ function AssetPane({work, asset, image, fogged, open, pickImage, run, toDesign, 
     img.src = url;
   };
   const adjust = (settings: {crop?: Crop; flip?: Flip}) => run(adjustPortrait(work.id, image.target, settings), text.work.saved);
-  const names = NAMED.includes(asset.cat);
+  const names = NAMED.includes(asset.cat), searchable = (asset.cat === 'ambient' || asset.cat === 'location') && !image.variantId;
   return (
     <div className="asset">
       <div className="asset-head">
@@ -214,6 +237,8 @@ function AssetPane({work, asset, image, fogged, open, pickImage, run, toDesign, 
         )}
         <div className="actions">
           <button className={bound ? 'ghost' : 'primary'} onClick={() => file.current?.click()}>{bound ? text.work.replace : text.work.upload}</button>
+          {searchable && <button className="ghost" aria-pressed={tool === 'search'}
+            onClick={() => setTool(tool === 'search' ? null : 'search')}>{text.imageSearch.open}</button>}
           {bound && <button className="ghost danger" onClick={() => run(removeImage(work.id, image.target), text.work.removed)}>{text.work.remove}</button>}
           {bound && portrait && <>
             <button className="ghost" aria-pressed={tool === 'crop'} onClick={() => setTool(tool === 'crop' ? null : 'crop')}>{text.work.crop}</button>
@@ -223,6 +248,8 @@ function AssetPane({work, asset, image, fogged, open, pickImage, run, toDesign, 
           <input ref={file} type="file" accept="image/png,image/jpeg,image/webp" hidden
             onChange={event => {check(event.target.files?.[0]);event.target.value = '';}} />
         </div>
+        {searchable && tool === 'search' && <ImageSearchPanel work={work} image={image} initial={asset.name} portrait={ratioValue(ratio) < 1}
+          run={run} setStatus={setStatus} />}
         <GenerateControls work={work} presets={presets} asset={asset} image={image} setWork={setWork} setStatus={setStatus} />
         {warning && (
           <div className="warn">{warning.text}
@@ -383,7 +410,42 @@ function BookInfoPane({work, run}: {work: WorkDetail; run: Run}) {
           <button className="ghost" onClick={() => setDraft({title, author})}>{text.work.undo}</button>
         </div>
       )}
+      <CreditsPart work={work} run={run} />
     </div>
+  );
+}
+
+/* The work's notice and signature, and the credits an export will carry (image models, music, sounds, voices). */
+function CreditsPart({work, run}: {work: WorkDetail; run: Run}) {
+  const {settings, sections, unsigned} = work.credits, t = text.credits;
+  const [notice, setNotice] = useState(settings.notice);
+  const [agents, setAgents] = useState(settings.agents.join('、'));
+  useEffect(() => setNotice(settings.notice), [settings.notice]);
+  useEffect(() => setAgents(settings.agents.join('、')), [settings.agents.join()]);
+  const agentList = [...new Set(agents.split(/[,，、]/).map(m => m.trim()).filter(Boolean))];
+  return (
+    <>
+      <label className="field"><span className="label">{t.notice}<Hint text={t.noticeHint} /></span>
+        <textarea maxLength={2000} value={notice} placeholder={t.noticePlaceholder} onChange={e => setNotice(e.target.value)} /></label>
+      {notice.trim() !== settings.notice && <div className="actions field-actions">
+        <button className="primary" onClick={() => run(setCredits(work.id, {...settings, notice}), t.saved)}>{t.save}</button>
+        <button className="ghost" onClick={() => setNotice(settings.notice)}>{text.work.undo}</button>
+      </div>}
+      <div className="field"><span className="label">{t.signature}</span>
+        <span className="inline"><Switch checked={settings.signature} label={t.signatureLabel}
+          onChange={signature => run(setCredits(work.id, {...settings, signature}), t.saved)} /><span className="tag">{t.signatureLabel}</span></span></div>
+      <label className="field"><span className="label">{t.agents}<Hint text={t.agentsHint} /></span>
+        <input className="text wide" value={agents} placeholder={t.agentsPlaceholder} onChange={e => setAgents(e.target.value)} /></label>
+      {agentList.join() !== settings.agents.join() && <div className="actions field-actions">
+        <button className="primary" onClick={() => run(setCredits(work.id, {...settings, agents: agentList}), t.saved)}>{t.save}</button>
+        <button className="ghost" onClick={() => setAgents(settings.agents.join('、'))}>{text.work.undo}</button>
+      </div>}
+      <h2 className="top-gap">{t.preview}</h2>
+      <div className="credits-preview">{sections.map(section => (
+        <div key={section.key}><b>{t.sections[section.key]}</b>
+          {section.items.map(item => [item.text, item.meta && `（${item.meta}）`].filter(Boolean).join('')).join('、')}</div>
+      ))}{unsigned > 0 && <div className="warn-text">{t.unsigned(unsigned)}</div>}</div>
+    </>
   );
 }
 

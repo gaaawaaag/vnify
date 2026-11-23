@@ -1,7 +1,14 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState, type ReactNode} from 'react';
 import {listModels, loadImagePresets, probe, saveImagePresets, saveSecret, type ImagePreset, type ImagePresetFile, type ImageUse, type WorkflowField, type WorkflowMap} from './api';
 import {Hint, Row, Segmented, Switch} from './controls';
 import {text} from './text';
+import {VoiceService} from './VoiceService';
+import {SoundService} from './SoundService';
+import {MusicService} from './MusicService';
+import {ImageSearchService} from './ImageSearchService';
+import {newMusicPreset, musicPresetName} from '../production/music-presets.js';
+import {loadMusicPresets, loadSoundServices, loadVoices, saveMusicPresets, type MusicPreset, type MusicPresetFile, type SoundServices, type VoiceLibrary} from './api';
+import {IMAGE_SEARCH_SOURCES} from '../production/image-search.js';
 import {
   API_SERVICES, DEFAULT_SIZES, FIELD_LABELS, IMAGE_USES, NAI_MODELS, apiBase, apiSecret, NAI_SAMPLERS, NAI_SCHEDULES, SHAPES, detectWorkflow, fieldKind, newPreset, parseWorkflow, presetName,
   workflowInputs, canEdit, referenceLimit,
@@ -11,17 +18,48 @@ const t = text.services;
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const cutoutOnly = (p: ImagePreset) => p.uses.length === 1 && p.uses[0] === 'cutout';
 
-/* Image service presets: how each kind of picture is drawn (NovelAI, a ComfyUI workflow or an OpenAI-compatible API), named from their settings.
- * The page edits a draft of image-presets.json; keys are saved on their own and never come back to the page. */
+/* Generation and search services. Images: presets for how each kind of picture is drawn (NovelAI, a ComfyUI workflow or
+ * an OpenAI-compatible API), named from their settings, edited as a draft of image-presets.json; and photo libraries to
+ * search (Pexels, Pixabay). Speech: the speech services and the voice library (VoiceService). Music and effects: audio
+ * presets (ElevenLabs, ComfyUI, Lyria) and the libraries searched for existing files (Freesound, the local library). Speech,
+ * audio and library settings are saved as they change. Keys are saved on their own and never come back to the page. */
+const FISH = 'fish', ELEVEN_VOICE = 'elevenlabs-voice', GEMINI_VOICE = 'gemini-voice', SOUND_PAGES = ['freesound', 'local'] as const, FOLD_KEY = 'vn-manager-services-folded';
+const AUDIO_SOURCES = ['elevenlabs', 'comfyui', 'lyria'] as const;
+type Kind = 'image' | 'voice' | 'audio';
 export function ServicesPage() {
   const [saved, setSaved] = useState<ImagePresetFile | null>(null);
   const [draft, setDraft] = useState<ImagePresetFile | null>(null);
   const [current, setCurrent] = useState('');
   const [secrets, setSecrets] = useState<Record<string, boolean>>({});
   const [status, setStatus] = useState('');
+  // The voice library's summary for the list; the Fish Audio page loads and saves the library itself.
+  const [voices, setVoices] = useState<VoiceLibrary | null>(null);
+  const [sounds, setSounds] = useState<SoundServices | null>(null);
+  const [music, setMusic] = useState<MusicPresetFile | null>(null);
+  // Each kind of service folds away in the list; remembered on this machine.
+  const [folded, setFolded] = useState<Set<Kind>>(() => {
+    try {const list = JSON.parse(localStorage.getItem(FOLD_KEY) ?? '[]');return new Set(Array.isArray(list) ? list : []);} catch {return new Set();}
+  });
+  const fold = (kind: Kind) => setFolded(old => {
+    const next = new Set(old);if (!next.delete(kind)) next.add(kind);
+    try {localStorage.setItem(FOLD_KEY, JSON.stringify([...next]));} catch {/* not kept */}
+    return next;
+  });
+  // A kind's heading: the name folds it (with a count while folded); a quiet menu beside it adds a preset of the kind.
+  const head = (kind: Kind, count: number | null, menu?: ReactNode) => (
+    <div className="kind-row">
+      <button className="kind-group" aria-expanded={!folded.has(kind)} onClick={() => fold(kind)}>
+        {t.kinds[kind]}{folded.has(kind) && count !== null && <small>{count}</small>}
+      </button>
+      {menu}
+    </div>
+  );
   useEffect(() => {
-    loadImagePresets().then(file => {setSaved(file);setDraft(file);setSecrets(file.secrets ?? {});setCurrent(file.presets[0]?.id ?? '');})
+    loadImagePresets().then(file => {setSaved(file);setDraft(file);setSecrets(file.secrets ?? {});setCurrent(old => old || (file.presets[0]?.id ?? ''));})
       .catch(error => setStatus(t.loadFailed + error.message));
+    loadVoices().then(setVoices).catch(() => {});
+    loadSoundServices().then(setSounds).catch(() => {});
+    loadMusicPresets().then(setMusic).catch(() => {});
   }, []);
   if (!draft || !saved) return <main><p className="status">{status}</p></main>;
   const preset = draft.presets.find(p => p.id === current) ?? null;
@@ -33,6 +71,11 @@ export function ServicesPage() {
     const id = `p${Date.now().toString(36)}`;
     setDraft({...draft, presets: [...draft.presets, newPreset(source, id) as unknown as ImagePreset]});setCurrent(id);
   };
+  // Music presets save as they change; the newest copy wins when two saves cross.
+  const saveMusic = (next: MusicPresetFile) => {
+    setMusic(next);
+    saveMusicPresets(next).then(saved => {setMusic(old => old === next ? {...saved, secrets: next.secrets} : old);setStatus(text.music.saved);}).catch(error => setStatus(error.message));
+  };
   const save = () => saveImagePresets(draft).then(file => {setSaved(file);setDraft(file);setStatus(t.saved);}).catch(error => setStatus(error.message));
   const dirty = !same(draft, saved);
   return (
@@ -40,14 +83,12 @@ export function ServicesPage() {
       <main className="services-main">
         <div className="services">
           <div className="plist">
-            <div className="head">
-              <span className="tag">{t.presets}</span>
-              <select value="" aria-label={t.add} onChange={event => event.target.value && add(event.target.value)}>
+            {head('image', draft.presets.length + IMAGE_SEARCH_SOURCES.length,
+              <select className="add-menu" value="" aria-label={t.add} onChange={event => event.target.value && add(event.target.value)}>
                 <option value="">{t.add}</option><option value="novelai">NovelAI</option><option value="comfyui">ComfyUI</option>
                 <option value="openai">{t.sources.openai}</option>
-              </select>
-            </div>
-            {(['novelai', 'comfyui', 'openai'] as const).map(source => {
+              </select>)}
+            {!folded.has('image') && (['novelai', 'comfyui', 'openai'] as const).map(source => {
               const list = draft.presets.filter(p => p.source === source);
               return list.length ? (
                 <div key={source}>
@@ -61,9 +102,66 @@ export function ServicesPage() {
                 </div>
               ) : null;
             })}
-            {!draft.presets.length && <p className="help pad">{t.empty}</p>}
+            {!folded.has('image') && !draft.presets.length && <p className="help pad">{t.empty}</p>}
+            {!folded.has('image') && <div>
+              <div className="group">{t.searchGroup}</div>
+              {IMAGE_SEARCH_SOURCES.map(source => (
+                <button key={source} className="p" aria-current={current === `search:${source}` ? 'true' : undefined} onClick={() => setCurrent(`search:${source}`)}>
+                  {text.imageSearch.names[source]}<small>{text.sounds.summary(!!secrets[source])}</small>
+                </button>
+              ))}
+            </div>}
+            {head('voice', voices?.voices.length ?? null)}
+            {!folded.has('voice') && ([[FISH, 'fish', text.voices.title], [ELEVEN_VOICE, 'elevenlabs', text.voices.eleven.title],
+              [GEMINI_VOICE, 'gemini', text.voices.gemini.title]] as const).map(([page, provider, title]) => (
+              <button key={page} className="p" aria-current={current === page ? 'true' : undefined} onClick={() => setCurrent(page)}>
+                {title}
+                <small>{voices ? text.voices.summary(voices.voices.filter(v => v.provider === provider).length,
+                  text.voices.models[voices[provider].model] ?? voices[provider].model) : text.voices.subtitle}</small>
+              </button>
+            ))}
+            {head('audio', music?.presets.length ?? null,
+              <select className="add-menu" value="" aria-label={t.add} onChange={event => {
+                if (!music || !event.target.value) return;
+                const preset = newMusicPreset(event.target.value, `m${Date.now().toString(36)}`) as unknown as MusicPreset;
+                saveMusic({...music, presets: [...music.presets, preset]});setCurrent(`music:${preset.id}`);
+              }}><option value="">{t.add}</option>
+                {AUDIO_SOURCES.map(source => <option key={source} value={source}>{text.music.sources[source]}</option>)}</select>)}
+            {!folded.has('audio') && AUDIO_SOURCES.map(source => {
+              const list = music?.presets.filter(p => p.source === source) ?? [];
+              return list.length ? (
+                <div key={source}>
+                  <div className="group">{text.music.sources[source]}</div>
+                  {list.map(p => (
+                    <button key={p.id} className="p" aria-current={current === `music:${p.id}` ? 'true' : undefined} onClick={() => setCurrent(`music:${p.id}`)}>
+                      {musicPresetName(p as never)}<small>{p.uses.map(u => text.music.uses[u]).join('、') || t.noUse}</small>
+                    </button>
+                  ))}
+                </div>
+              ) : null;
+            })}
+            {!folded.has('audio') && music && !music.presets.length && <p className="help pad">{text.music.empty}</p>}
+            {!folded.has('audio') && <div>
+              <div className="group">{text.sounds.libraries}</div>
+              {SOUND_PAGES.map(page => (
+                <button key={page} className="p" aria-current={current === page ? 'true' : undefined} onClick={() => setCurrent(page)}>
+                  {text.sounds[page]}
+                  <small>{page === 'freesound' ? text.sounds.summary(!!sounds?.secrets?.freesound)
+                    : text.sounds.localSummary(sounds?.localCount ?? null, sounds?.musicCount ?? null)}</small>
+                </button>
+              ))}
+            </div>}
           </div>
-          {preset ? <PresetForm key={preset.id} preset={preset} change={change} secrets={secrets} setSecrets={setSecrets} setStatus={setStatus}
+          {current === FISH || current === ELEVEN_VOICE || current === GEMINI_VOICE
+            ? <VoiceService key={current} provider={current === FISH ? 'fish' : current === ELEVEN_VOICE ? 'elevenlabs' : 'gemini'} setStatus={setStatus} onLibrary={setVoices} />
+            : current.startsWith('music:') && music?.presets.some(p => `music:${p.id}` === current)
+              ? <MusicService key={current} file={music} preset={music.presets.find(p => `music:${p.id}` === current)!} save={saveMusic} setStatus={setStatus} />
+            : (SOUND_PAGES as readonly string[]).includes(current)
+              ? <SoundService key={current} which={current as typeof SOUND_PAGES[number]} setStatus={setStatus} onServices={setSounds} />
+            : current.startsWith('search:')
+              ? <ImageSearchService key={current} source={current.slice('search:'.length) as typeof IMAGE_SEARCH_SOURCES[number]} secrets={secrets}
+                setSecrets={setSecrets} setStatus={setStatus} />
+            : preset ? <PresetForm key={preset.id} preset={preset} change={change} secrets={secrets} setSecrets={setSecrets} setStatus={setStatus}
             copy={() => {const id = `p${Date.now().toString(36)}`;setDraft({...draft, presets: [...draft.presets, {...structuredClone(preset), id, custom: `${preset.custom} ${t.copySuffix}`.trim()}]});setCurrent(id);}}
             remove={() => {const presets = draft.presets.filter(p => p.id !== preset.id);setDraft({...draft, presets});setCurrent(presets[0]?.id ?? '');}} />
             : <div className="form"><p className="help">{t.pick}</p><Help /></div>}

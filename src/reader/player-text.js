@@ -17,7 +17,8 @@ const TEXT={ja:JA,'zh-Hant':HANT,en:{
   '继续阅读':'Continue reading','继续阅读《{title}》，已读 {n}%':'Continue reading “{title}”, {n}% read','背景图片无法读取。':'The background picture cannot be read.',
   '未读':'Unread','读完':'Finished','今天':'Today','昨天':'Yesterday','{n} 天前':'{n} days ago','制作中':'In progress',
   '上传中 {a}/{b}':'Uploading {a}/{b}','{title}：更多操作':'{title}: more actions','导出作品包':'Export package','移出书架':'Remove from shelf',
-  '移出':'Remove','编辑信息':'Edit details','《{title}》':'“{title}”','读取中':'Loading',
+  '移出':'Remove','编辑信息':'Edit details','评分与短评':'Rating & review','{m} 月 {d} 日':'{m}/{d}','{m} 月 {d} 日读完':'Finished {m}/{d}','重新阅读':'Read again','回看结尾':'See the ending','简介':'Blurb',
+  '阅读统计':'Reading stats','年份':'Year','书架上显示评分':'Show ratings on the shelf','少':'Less','多':'More','每天':'By day','每本书':'By book','全部':'All','最长连续':'Longest streak','{n} 本':'{n}','已移出的书':'Removed book','《{title}》':'“{title}”','读取中':'Loading',
   '书架不可用：本机服务未能读取作品库。':'The shelf is unavailable: the local service could not read the library.',
   '简体中文':'Simplified Chinese','繁体中文':'Traditional Chinese','英文':'English','日文':'Japanese','横屏优先':'Landscape','竖屏优先':'Portrait',
   '关闭':'Close','每页行数':'Rows per page','2 行':'2 rows','3 行':'3 rows','4 行':'4 rows','6 行':'6 rows','不分页':'One page',
@@ -31,7 +32,7 @@ const TEXT={ja:JA,'zh-Hant':HANT,en:{
   '细节特写':'Close-up','放大细节特写':'Enlarge close-up','放大':'Enlarge','收起细节特写':'Collapse close-up','收起':'Collapse',
   '展开细节特写':'Expand close-up','展开':'Expand',
   '心声':'Thought','回忆':'Memory','梦境':'Dream','资料':'Document',
-  '隐藏对话框':'Hide text box','隐藏对话框（↓）':'Hide text box (↓)','历史':'History','历史（H）':'History (H)',
+  '隐藏对话框':'Hide text box','隐藏对话框（↓）':'Hide text box (↓)','历史':'History','历史（H）':'History (H)','朗读（V）':'Read aloud (V)',
   '自动播放':'Auto','自动播放（A）':'Auto (A)','继续':'Continue','阅读历史':'Reading history','返回':'Back',
   '保存中…':'Saving…','进度已保存':'Progress saved','未能保存':'Not saved','作品已更新':'Updated',
   '书架存储不可用，当前仍可试读；关闭后进度可能丢失。':'Shelf storage is unavailable. You can keep reading, but your place may be lost when you close the page.',
@@ -44,6 +45,7 @@ const TEXT={ja:JA,'zh-Hant':HANT,en:{
   '作品的背景清单无法使用，请重新导入作品包。':'This work’s background list cannot be used. Import the package again.',
   // Title screen
   '标题画面':'Title screen','点击开始':'Click to start',
+  '结尾画面':'End screen','终':'The End','结尾':'Ending','阅读时长':'Reading time','日期':'Dates','阅读天数':'Days read','{h} 小时 {m} 分':'{h} h {m} min','{m} 分钟':'{m} min','{n} 天':'{n} days','评分':'Rating','{n} 分':'{n} of 5','短评':'Review','写几句短评…':'A few words…','回看':'Look back','回到书架':'Back to shelf','未能保存评分':'Rating not saved',
   // Gallery
   '显示全部':'Show all','关闭图集':'Close gallery','图集分类':'Gallery categories','图片':'Pictures','这部作品还没有图片。':'This work has no pictures yet.',
   '查看图片':'Picture viewer','关闭图片':'Close picture','上一张':'Previous','下一张':'Next',
@@ -60,6 +62,12 @@ const TEXT={ja:JA,'zh-Hant':HANT,en:{
   '关闭设置':'Close settings','分屏方式':'Screens','逐句分屏':'One sentence each','按原文自然段':'By paragraph','主题':'Theme',
   '对话框高度':'Text box height','对话框透明度':'Text box transparency','字号':'Font size','行距':'Line spacing','文字显示':'Text speed',
   '立即显示':'Instant','快速':'Fast','适中':'Medium','缓慢':'Slow','自动播放停留':'Auto-advance delay','{n} 行':'{n} lines','{n} 秒':'{n} s','（{text}）':'({text})',
+  '总音量':'Master volume','音乐音量':'Music volume',
+  '模型':'Model','音色':'Voices','音色 ID 或链接':'Voice ID or link','添加':'Add','浏览器':'Browser','移除':'Remove','音色 ID 无效。':'Invalid voice ID.','Fish Audio 上没有这个音色。':'Fish Audio has no such voice.','朗读失败：{m}':'Could not read the line aloud: {m}',
+  '作品分派：{name}':'From the work: {name}','试听':'Preview','这部作品用了 {services} 音色，填入 key 后才能听到':'This work uses {services} voices; add a key to hear them',
+  '环境音音量':'Ambience volume','音效音量':'Effects volume','界面音效音量':'Interface sounds volume',
+  '致谢':'Credits','关闭致谢':'Close credits','原作':'Original','说明':'Notice','图像':'Images','音乐':'Music','音效':'Sound effects','语音':'Voices','制作':'Made with','链接':'Link',
+  '朗读':'Read aloud','台词':'Dialogue','台词与旁白':'Dialogue and narration','语音音量':'Voice volume','语速':'Voice speed','旁白':'Narrator','默认':'Default',
 }};
 
 /* Typing pace: an English word takes about as many characters as a Chinese phrase takes, so English types two characters

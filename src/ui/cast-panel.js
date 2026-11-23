@@ -6,7 +6,8 @@ function element(tag,className,text='') {
   const node=document.createElement(tag);node.className=className;node.textContent=text;return node;
 }
 // World terms have their own panel (reference-panel.js), opened from the reading menu.
-export function createCastPanel({getCharacters,getAvatar=()=>null,colorFor,onOpen,onClose}) {
+// voiceLine(id): the character's voice choice for reading aloud (src/ui/voice-cast.js), or null.
+export function createCastPanel({getCharacters,getAvatar=()=>null,colorFor,onOpen,onClose,voiceLine=()=>null}) {
   const dialog=document.getElementById('cast-dialog'),body=document.getElementById('cast-body');
   const back=document.getElementById('cast-back'),title=document.getElementById('cast-title');
   let selected=null;
@@ -48,6 +49,7 @@ export function createCastPanel({getCharacters,getAvatar=()=>null,colorFor,onOpe
       information.append(element('h3','character-name',person.label));
       if(person.fullName && person.fullName!==person.label)information.append(element('p','character-full-name',t('全名 · {name}',{name:person.fullName})));
       information.append(element('p','character-summary',person.summary||'？？？'));
+      const voice=voiceLine(person.id);if(voice)information.append(voice);
       const details=person.detailEntries || person.entries.map(text=>({text,category:''}));
       for(const [category,label] of [['alias',t('称呼')],['relation',t('关系')],['background',t('背景')],['',t('资料')]]) {
         const rows=details.filter(e=>e.category===category);if(!rows.length)continue;

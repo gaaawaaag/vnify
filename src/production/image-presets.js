@@ -157,10 +157,17 @@ export function checkWorkflowMap(data,map,image=false) {
 }
 
 /** The preset's name: 来源 · 模型 · 用途 · 自定义 (an API is named by its service, its model without the vendor). @param {any} p */
-export function presetName(p) {
+/** The model a preset draws with, as credits name it. @param {any} p */
+export function presetModel(p) {
   const cutoutOnly=p.uses.length===1&&p.uses[0]==='cutout';
-  const model=p.source==='novelai'?(cutoutOnly?'去背景':/** @type {Record<string,string>} */(NAI_MODELS)[p.model]?.replace(' Full','')??p.model)
+  return p.source==='novelai'?(cutoutOnly?'去背景':/** @type {Record<string,string>} */(NAI_MODELS)[p.model]?.replace(' Full','')??p.model)
     :p.source==='openai'?String(p.model).split('/').pop():p.model;
+}
+/** The model as credits name it: NovelAI's carry the service's name. @param {any} p */
+export const creditModel=p=>p.source==='novelai'?`NovelAI ${presetModel(p)}`:presetModel(p);
+/** @param {any} p */
+export function presetName(p) {
+  const cutoutOnly=p.uses.length===1&&p.uses[0]==='cutout',model=presetModel(p);
   const use=cutoutOnly?(p.source==='novelai'?'':'去背')
     :p.uses.length===1?(p.uses[0]==='standing'?(p.transparent?'透明背景立绘':'立绘'):p.uses[0]==='variant'?'立绘差分编辑':/** @type {any} */(USE_LABELS)[p.uses[0]])
       :p.uses.map((/** @type {string} */ u)=>/** @type {any} */(USE_LABELS)[u]).join('／');

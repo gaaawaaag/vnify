@@ -4,11 +4,11 @@ import { createReadStream } from 'node:fs';
 import path from 'node:path';
 
 /** @import {Readable} from 'node:stream' */
-/** @import {DeviceSessions,Progress} from '../types/library.js' */
+/** @import {DeviceSessions,Progress,ReadingRecord} from '../types/library.js' */
 
 /* Where the bookshelf keeps its two kinds of data, behind one interface so another backend (WebDAV) can replace the disk:
  * - content: each book's files (package tree, meta.json, cover), written only when a book is imported or replaced;
- * - reading: each book's reading data (positions and reading sessions), written while someone reads. It is kept per
+ * - reading: each book's reading data (positions, reading sessions and records), written while someone reads. It is kept per
  *   device, each device writing only its own records, and outlives the book's content when the book is removed;
  * - home: the shelf's own files, such as the home page background, apart from any book.
  * Names are paths inside a book, such as `meta.json` or `package/assets/backgrounds/<sha>.webp`; callers check them,
@@ -35,6 +35,8 @@ import path from 'node:path';
  * @property {(key:string)=>Promise<DeviceSessions[]>} sessions
  * @property {(key:string,device:string)=>Promise<DeviceSessions|null>} deviceSessions
  * @property {(key:string,value:DeviceSessions)=>Promise<void>} putSessions Replaces the device's file as a whole.
+ * @property {(key:string)=>Promise<ReadingRecord[]>} records Each device's record of the book (finished, later rating).
+ * @property {(key:string,value:ReadingRecord)=>Promise<void>} putRecord Replaces the device's record as a whole.
  */
 
 /** @param {string} file @param {string|Uint8Array} data */
@@ -60,7 +62,7 @@ async function readAll(folder) {
 }
 
 /* The shelf on disk: one folder per book key, removed books move to .trash; reading data sits apart under
- * .reading/<key>/progress/<device>.json and .reading/<key>/sessions/<device>.json; the shelf's own files under .home/. */
+ * .reading/<key>/{progress,sessions,records}/<device>.json; the shelf's own files under .home/. */
 /** @param {string} root @returns {{root:string,content:ContentStore,reading:ReadingStore,home:HomeStore,migrate:()=>Promise<void>}} */
 export function createDiskStorage(root) {
   const file = (/** @type {string} */ key, /** @type {string} */ name) => path.join(root, key, ...name.split('/'));
@@ -101,6 +103,8 @@ export function createDiskStorage(root) {
     sessions: key => readAll(path.join(readingDir, key, 'sessions')),
     deviceSessions: (key, device) => readFile(own(key, 'sessions', device), 'utf8').then(JSON.parse).catch(() => null),
     putSessions: (key, value) => writeAtomic(own(key, 'sessions', value.device), JSON.stringify(value)),
+    records: key => readAll(path.join(readingDir, key, 'records')),
+    putRecord: (key, value) => writeAtomic(own(key, 'records', value.device), JSON.stringify(value)),
   };
   const homeFile = (/** @type {string} */ name) => path.join(root, '.home', name);
   /** @type {HomeStore} */

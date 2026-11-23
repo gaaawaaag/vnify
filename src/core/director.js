@@ -7,6 +7,10 @@ import {validateCgs,compileCgs} from './cgs.js';
 import {validateVariants,compileVariants,checkStature} from './variants.js';
 import {validateStages,compileStages} from './stages.js';
 import {scriptLines} from './script-text.js';
+import {readBlurb} from './blurb.js';
+import {readMusic,compileMusic} from './music.js';
+import {readVoices} from './voices.js';
+import {readSounds,compileSounds} from './sounds.js';
 import {validateDirectorGeneration} from './director-generation.js';
 import {composeImagePrompt} from './image-prompts.js';
 
@@ -192,15 +196,16 @@ export function validateDirector(text,story,chapterId,previous=[],context=null) 
   return result;
 }
 
-/** @param {string} raw @param {DirectorRecord[]} docs @param {TitleCard|null} [titleCard] */
-export function embedDirectors(raw,docs,titleCard=null) {
-  const cover=titleCard?`\n// @vn-title-card ${JSON.stringify({prompt:titleCard.prompt})}`:'';
+/** @param {string} raw @param {DirectorRecord[]} docs @param {TitleCard|null} [titleCard] @param {TitleCard|null} [endCard] */
+export function embedDirectors(raw,docs,titleCard=null,endCard=null) {
+  const cover=(titleCard?`\n// @vn-title-card ${JSON.stringify({prompt:titleCard.prompt})}`:'')
+    +(endCard?`\n// @vn-end-card ${JSON.stringify({prompt:endCard.prompt})}`:'');
   return raw+cover+docs.map(doc=>`\n// @vn-director ${JSON.stringify(doc)}`).join('');
 }
-/** @param {any} value @returns {TitleCard} */
-export function validateTitleCard(value) {
-  if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(k=>k!=='prompt'))throw new Error('titleCard 须为 {prompt}。');
-  if(typeof value.prompt!=='string'||!value.prompt.trim()||value.prompt.length>20000)throw new Error('titleCard 需要一条有效的英文画面描述。');
+/** @param {any} value @param {string} [field] @returns {TitleCard} */
+export function validateTitleCard(value,field='titleCard') {
+  if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(k=>k!=='prompt'))throw new Error(`${field} 须为 {prompt}。`);
+  if(typeof value.prompt!=='string'||!value.prompt.trim()||value.prompt.length>20000)throw new Error(`${field} 需要一条有效的英文画面描述。`);
   return {prompt:value.prompt.trim()};
 }
 // After all records pass, attach the derived ambient, CG, cut-in, variant and stage indexes to this parsed story.
@@ -210,10 +215,13 @@ export function readDirectors(raw,story) {
   const docs=[],seen=new Set();
   /** @type {ArtStyles|null} */
   let artStyles=null;
-  story.titleCard=null;
+  story.titleCard=null;story.endCard=null;story.blurb=readBlurb(raw);
   for(const {text:line,literal} of scriptLines(raw))if(!literal&&line.startsWith('// @vn-title-card ')) {
     if(story.titleCard)throw new Error('作品封面记录重复。');
     story.titleCard=validateTitleCard(JSON.parse(line.slice(18)));
+  } else if(!literal&&line.startsWith('// @vn-end-card ')) {
+    if(story.endCard)throw new Error('结尾图记录重复。');
+    story.endCard=validateTitleCard(JSON.parse(line.slice(16)),'endCard');
   } else if(!literal&&line.startsWith('// @vn-director ')) {
     const value=JSON.parse(line.slice(16));
     const doc=validateDirector(value,story,value.chapterId,docs);
@@ -227,5 +235,8 @@ export function readDirectors(raw,story) {
   story.cgs=compileCgs(story,docs);
   story.variantArt=compileVariants(story,docs);
   story.stageRanges=compileStages(story,docs);
+  story.music=readMusic(raw,story);story.musicCues=compileMusic(story.music,story);
+  story.voices=readVoices(raw,story);
+  story.sounds=readSounds(raw,story);story.soundIndex=compileSounds(story.sounds,story);
   return docs;
 }

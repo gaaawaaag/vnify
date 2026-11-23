@@ -1,0 +1,18 @@
+{
+  "open": {"gain": 0.62, "layers": [
+    {"type": "tone", "wave": "triangle", "f": 220, "f2": 440, "dur": 0.11, "g": 0.22},
+    {"type": "tone", "wave": "triangle", "f": 330, "f2": 660, "dur": 0.1, "g": 0.08, "at": 0.03}
+  ]},
+  "close": {"gain": 0.6, "layers": [
+    {"type": "tone", "wave": "triangle", "f": 440, "f2": 220, "dur": 0.1, "g": 0.2}
+  ]},
+  "select": {"gain": 1.27, "layers": [
+    {"type": "tone", "wave": "triangle", "f": 660, "dur": 0.04, "g": 0.1}
+  ]},
+  "chapter": {"gain": 1.27, "layers": [
+    {"type": "tone", "wave": "triangle", "f": 392, "dur": 0.18, "g": 0.12, "wet": 0.25},
+    {"type": "tone", "wave": "triangle", "f": 494, "dur": 0.18, "g": 0.12, "at": 0.07, "wet": 0.25},
+    {"type": "tone", "wave": "triangle", "f": 587, "dur": 0.18, "g": 0.12, "at": 0.14, "wet": 0.25},
+    {"type": "tone", "wave": "triangle", "f": 784, "dur": 0.18, "g": 0.12, "at": 0.21, "wet": 0.25}
+  ]}
+}

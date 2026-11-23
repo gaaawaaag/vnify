@@ -4,7 +4,7 @@
 //   ...change CSS, reload...
 //   await (0, eval)(await (await fetch('/scripts/browser/style-snapshot.js')).text())({compare: 'before'})
 // It replaces the reader's current book in this browser profile and uses only original examples.
-// Without a visible tab, run it through scripts/browser/electron-run.mjs with {returnSnapshot:true}
+// Without a visible tab, run it through scripts/browser/browser-run.mjs with {returnSnapshot:true}
 // and compare the files with scripts/browser/compare-snapshots.mjs.
 async ({save = null, compare = null, examples = null, returnSnapshot = false, shots = []} = {}) => {
   const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -78,7 +78,7 @@ async ({save = null, compare = null, examples = null, returnSnapshot = false, sh
     await wait(1200);
   }
   const states = [];
-  // With electron-run's shotsDir, listed states are also saved as screenshots (scripts/theme-shots.mjs).
+  // With browser-run's shotsDir, listed states are also saved as screenshots (scripts/theme-shots.mjs).
   const record = async (name, value) => {
     states.push([name, value]);
     if (!shots.includes(name)) return;

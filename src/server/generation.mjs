@@ -128,7 +128,7 @@ export function createGeneration({ presets, load, serial, refresh }) {
     await serial(projectPath, async () => {
       const { file, ...bound } = await bindImage(projectPath, image.target, result.bytes,
         { mode: result.mode, sentPrompt: result.prompt, seed: result.seed, preset: result.presetName });
-      await appendGenerated(projectPath, { key: image.key, imageId, file, preset: result.presetName, mode: result.mode, seed: result.seed,
+      await appendGenerated(projectPath, { key: image.key, imageId, file, preset: result.presetName, model: result.presetModel, mode: result.mode, seed: result.seed,
         prompt: result.prompt, negative: result.negative, width: result.width, height: result.height, cutout: result.cutoutWith,
         ...(result.references.length ? { references: result.references } : {}), time: new Date().toISOString() });
       await refresh(projectPath, bound);
@@ -153,7 +153,7 @@ export function createGeneration({ presets, load, serial, refresh }) {
       const { file, ...done } = await bindImage(projectPath, image.target, bytes, { mode: 'cutout', ...(before ? { seed: before.seed, preset: before.preset } : {}) });
       const latest = bound.flip ? await adjustAfter(projectPath, image.target, bound) : done;
       const size = imageSizeOf(bytes);
-      await appendGenerated(projectPath, { key: image.key, imageId, file, preset: before?.preset ?? '', mode: 'cutout', seed: before?.seed ?? null,
+      await appendGenerated(projectPath, { key: image.key, imageId, file, preset: before?.preset ?? '', ...(before?.model ? { model: before.model } : {}), mode: 'cutout', seed: before?.seed ?? null,
         prompt: before?.prompt ?? '', negative: before?.negative ?? '', ...size, cutout: item.method === 'program' ? 'program' : item.presetName,
         time: new Date().toISOString() });
       await refresh(projectPath, latest);

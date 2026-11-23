@@ -12,7 +12,7 @@ npm run number-source -- "input/novel.txt" --out "works/novel/convert"
 
 输入为 `.epub` 时按书内阅读顺序取文字，每段一行编号（注音只留基字，DRM 加密直接报错），另生成：
 
-- `epub.json`：`title`、`author`（全部 dc:creator，用“、”连接，可能为空）、`chapters`（原书目录转成的 `{start,title}`；指向单图页的目录条目不成章，标题作为图注）、`images`（原图元数据与 `images/` 下的文件）、`placements`（每张图位于哪个来源之后，正文前为 null）、`cover`、`skipped`（非 PNG／JPEG／WebP 或过大的图）。
+- `epub.json`：`title`、`author`（全部 dc:creator，用“、”连接，可能为空）、`description`（原书自带的简介，去掉 HTML，可能为空）、`chapters`（原书目录转成的 `{start,title}`；指向单图页的目录条目不成章，标题作为图注）、`images`（原图元数据与 `images/` 下的文件）、`placements`（每张图位于哪个来源之后，正文前为 null）、`cover`、`skipped`（非 PNG／JPEG／WebP 或过大的图）。
 - `images/`：原书图片（任一边小于 64 像素的字形／装饰图不收）。
 
 EPUB 不接受 `--mode`、`--prefix`、`--start`、`--encoding`。参考分批按字符数切分，正式转换按章节和完整语义选择范围。原文全部保存在映射中，编号后保持该快照不变。
@@ -67,7 +67,7 @@ node scripts/shorthand.mjs expand "works/novel/convert/project.json" "works/nove
 ```json
 {
   "schema": "vn-agent-1",
-  "book": {"id": "novel", "title": "小说名", "author": "作者（可省略）", "lang": "zh"},
+  "book": {"id": "novel", "title": "小说名", "author": "作者（可省略）", "lang": "zh", "blurb": "简介（可省略）"},
   "sourceMap": "source-map.json",
   "parts": [
     {"script": "parts/001.vns.txt", "from": "p000001", "to": "p000003", "chapter": {"id": "ch01", "title": "第一章"}},
@@ -81,6 +81,8 @@ node scripts/shorthand.mjs expand "works/novel/convert/project.json" "works/nove
 ```
 
 `book.lang` 为作品语言（`zh`／`zh-Hant`／`en`／`ja`），可省略，省略时取 `source-map.json` 的 `lang`；写了就须与它一致，合并时写进 `@book`。
+
+`book.blurb` 为作品简介，合并时写成 `// @vn-blurb` 记录，标题画面显示。`epub.json` 有 `description` 时照录它；原书没有简介时省略。
 
 输入文件路径相对于 `project.json`。同章可连续登记多个批次，使用相同章节 ID／标题；块 ID 全书唯一，例如 `b0001_s01`、`b0002_s01`。批次范围首尾相接，涵盖标题、分隔行及排除材料；这些来源由脚本中的 `// @source-use` 或 `// @vn-transition` 交代，不从清单中跳过。
 

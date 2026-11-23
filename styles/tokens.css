@@ -6,10 +6,30 @@
   --cut-in-shadow: 0 8px 30px #0009;
   --title-screen-text: #eef1f4;
   --title-screen-hint: #eef1f4c7;
-  --title-screen-scrim: #0000008c;
   --title-screen-shadow: 0 2px 12px #000000b3;
   /* A tall cover on a wide screen sits over a blurred, darkened copy of itself. */
   --title-screen-backdrop-filter: blur(36px) brightness(.45) saturate(1.1);
+  /* The title screen's state line and buttons. */
+  --title-screen-accent: #e9d9b4;
+  --title-screen-cover-shadow: 0 18px 50px #000a, 0 0 0 1px #ffffff1a;
+  --title-screen-button: #ffffff14;
+  --title-screen-button-line: #ffffff2e;
+  --title-screen-primary: #ffffffe6;
+  --title-screen-primary-text: #111;
+  /* The end card: text and shadow follow the title screen; its picture is always blurred and darkened. */
+  --end-card-backdrop-filter: blur(30px) brightness(.4) saturate(1.1);
+  --end-card-picture-filter: brightness(.62) saturate(1.05);
+  --end-card-picture-shade: radial-gradient(ellipse 60% 55% at 50% 50%, rgb(0 0 0 / 45%), transparent 75%);
+  --end-card-background: #15181d;
+  --end-card-soft: #eef1f4b8;
+  --end-card-faint: #eef1f473;
+  --end-card-line: #ffffff2e;
+  --end-card-accent: #e9d9b4;
+  --end-card-field: #0000002e;
+  --end-card-field-line: #ffffff24;
+  --end-card-button: #ffffff14;
+  --end-card-primary: #ffffffe6;
+  --end-card-primary-text: #111;
   /* Reading pictures shown whole (a tall one on a wide screen, a wide CG on a tall one) sit on the same treatment. */
   --picture-backdrop-filter: blur(36px) brightness(.45) saturate(1.1);
   --cursor-default: url("../assets/cursors/cursor.png") 3 3, default;
@@ -29,7 +49,12 @@
   --memory-scrim-rgb: 34 22 11;
   --dream-scrim-rgb: 24 18 42;
   --memory-image-filter: sepia(.9) saturate(.75) brightness(.7) contrast(.9);
+  /* Memories stay slightly out of focus (0px for none). */
+  --memory-image-blur: 1.2px;
   --dream-image-filter: grayscale(.5) brightness(.62) contrast(.9);
+  /* Darkened corners over the picture during memories and dreams (none for no vignette). */
+  --memory-vignette: radial-gradient(ellipse 75% 70% at 50% 45%, transparent 50%, rgb(40 24 8 / 70%) 100%);
+  --dream-vignette: radial-gradient(ellipse 70% 65% at 50% 45%, transparent 45%, rgb(22 14 44 / 75%) 100%);
   --dialogue-text-shadow: 0 1px 2px rgb(0 0 0 / 60%);
   --context-text: #eef0f3;
   --context-muted: #c0c6cd;
@@ -91,6 +116,11 @@
   --home-tip: #15181cf0;
   --home-brand-shadow: 0 1px 12px rgb(0 0 0 / 35%);
   --home-menu: rgb(17 19 23 / 92%);
+  /* Reading statistics: moon phases on a dim disc, and the rating diamonds on the shelf. */
+  --stats-moon: #e9d9b4;
+  --stats-disc: #ffffff12;
+  --stats-bar: #ffffff12;
+  --stats-bar-fill: #aeb4bc;
   --home-resume-text: #f4f6f8;
   --home-resume-muted: #d0d6dc;
   --home-resume-rule: rgb(255 255 255 / 40%);
@@ -269,7 +299,7 @@
   --quick-icon-size: 19px;
   --quick-icon-stroke: 1.5;
   --quick-active-text: var(--gold);
-  --quick-active-background: transparent;
+  --quick-active-background: #ffffff1f;
   /* The place and time at the top right, optionally on a label. */
   --place-padding: 0;
   --place-border: 0 none;

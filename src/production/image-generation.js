@@ -1,5 +1,5 @@
 // @ts-check
-import {imageUse,presetName,apiSecret,canEdit,referenceLimit,refLabel,REFERENCE_IMAGES} from './image-presets.js';
+import {imageUse,presetName,creditModel,apiSecret,canEdit,referenceLimit,refLabel,REFERENCE_IMAGES} from './image-presets.js';
 import {castPrompt,characterBackgroundPrompt} from '../core/image-prompts.js';
 import {chosenPrompt} from './prompt-formats.js';
 import * as novelai from './generators/novelai.js';
@@ -61,7 +61,7 @@ export function planDrawing({preset,asset,image,base=null,cast=[]}) {
     :preset.seed==='random'?randomSeed():preset.seed;
   const portrait=asset.cat==='character',fixed=withFixed(prompt,preset);
   return {use:imageUse(asset,image),mode:edit?'edit':named.length?'reference':'generate',references:named,prompt:portrait?transparentPrompt(preset,fixed):fixed,negative:preset.negative,width,height,seed,
-    ratio:image.aspectRatio,portrait,preset:preset.id,presetName:presetName(preset),source,pending};
+    ratio:image.aspectRatio,portrait,preset:preset.id,presetName:presetName(preset),presetModel:creditModel(preset),source,pending};
 }
 
 
